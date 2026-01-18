@@ -5,5 +5,5 @@ namespace R.O.S.C.H.WS.Common;
 public interface IMessageHandler
 {
     string MessageType { get; } 
-    Task<WebSocketMessage?> HandleAsync(WebSocketMessage message);
+    Task<WebSocketMessage?> HandleAsync(WebSocketMessage message, string sessionId);
 }

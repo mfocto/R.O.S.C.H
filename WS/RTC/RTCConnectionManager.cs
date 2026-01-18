@@ -1,105 +1,90 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json.Nodes;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using R.O.S.C.H.WS.Common;
+using R.O.S.C.H.WS.Models;
+using R.O.S.C.H.WS.RTC.DTO;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace R.O.S.C.H.WS.RTC;
 
 public class RTCConnectionManager(ILogger<RTCConnectionManager> logger)
 {
     private ILogger _logger = logger;
-    public readonly ConcurrentDictionary<string, ConcurrentDictionary<string, ClientInfo>> _clientInfos = new ();
-    public readonly ConcurrentDictionary<string, ConcurrentDictionary<string, WebSocket>> _unity = new ();
-    public readonly ConcurrentDictionary<string, ConcurrentDictionary<string, WebSocket>> _clients = new ();
-    public readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _pairs = new ();
-     
+    
+    
+    public readonly ConcurrentDictionary<string, WebSocket> _BroadCasters = new();
+    public readonly ConcurrentDictionary<string, ClientDTO> _Clients = new();
+    
     // 연결처리 
-    public string AddConnection(WebSocket socket, string type, string clientId)
+    public void AddBroadcaster(WebSocket socket, string roomId)
     {
-        var sessionId = Guid.NewGuid().ToString();
-        var connection = new ConcurrentDictionary<string, WebSocket>();
-        connection.TryAdd(clientId, socket);
+        _BroadCasters.TryAdd(roomId, socket);
         
-        if (type.Equals("Unity"))
-        {
-            _unity.TryAdd(sessionId, connection);
-            _pairs.TryAdd(clientId, new ConcurrentDictionary<string, byte>());  
-        } else if (type.Equals("Client"))
-        {
-            _clients.TryAdd(sessionId, connection);
-        }
-        
-        var clientInfo = new ConcurrentDictionary<string, ClientInfo>();
-
-        clientInfo.TryAdd(clientId, new ClientInfo
-        {
-            SessionId = sessionId,
-            ClientId = clientId,
-            LastActivate = DateTimeOffset.Now
-        });
-
-        _clientInfos.TryAdd(sessionId, clientInfo);
-        
-        _logger.LogInformation($"[RTCConnectionManager] ({clientId}) 연결되었습니다.");
-
-        return sessionId;
-    }
-
-    // 연결해제
-    public void RemoveConnection(string sessionId, string type, string clientId)
-    {
-        ConcurrentDictionary<string, WebSocket> clients;
-        ConcurrentDictionary<string, ClientInfo> clientInfos =  _clientInfos[sessionId];
-        if (type.Equals("Unity"))
-        {
-            clients = _unity[sessionId];
-            _pairs.TryRemove(clientId, out _);
-        }  else 
-        {
-            clients = _clients[sessionId];
-        }
-        
-        clients.TryRemove(clientId, out _);
-        clientInfos.TryRemove(clientId, out _);
-        
-        _logger.LogInformation($"[RTCConnectionManager] ({clientId}) 연결 해제되었습니다.");
-    }
-
-    // 정보조회
-    public ClientInfo? GetClientInfo(string sessionId, string clientId)
-    {
-        if (_clientInfos.TryGetValue(sessionId, out var clientInfos))
-        {
-            clientInfos.TryGetValue(clientId, out var info);
-            return info;
-        }
-
-        return null;
-    }
-
-    // 페어링
-    public void Pair(string sessionId, string clientId, string pairId)
-    {
-        if (_clientInfos[sessionId].TryGetValue(clientId, out var info))
-        {
-            // 기존 페어링이 있으면 해제
-            if (string.IsNullOrWhiteSpace(info.PairId))
-            {
-                _pairs[pairId].TryRemove(info.PairId, out _);
-                info.PairId = string.Empty;
-            }
-
-            _pairs[pairId].TryAdd(clientId, 0);
-            info.PairId = pairId;
-        }
-    }
-
-    public ConcurrentDictionary<string, byte>? GetPairInfo(string pairId)
-    {
-        _pairs.TryGetValue(pairId, out var info);
-        
-        return info;    
+        _logger.LogInformation($"[RTCConnectionManager] {roomId} 브로드캐스터 등록 완료");
+        SendMessageAsync(socket, $"{roomId} - Broadcaster 등록되었습니다");
     }
     
+    // 연결해제
+    public void RemoveBroadcaster(WebSocket socket, string roomId)
+    {
+        _BroadCasters.TryRemove(roomId, out _);
+               
+        _logger.LogInformation($"[RTCConnectionManager] {roomId} 브로드캐스터 연결 해제");
+        SendMessageAsync(socket, $"{roomId} - Broadcaster 연결 해제되었습니다.");
+    }
+
+    public ICollection<string> GetBroadcasters()
+    {
+        return _BroadCasters.Keys;
+    }
+
+    public string RegisterClient(WebSocket socket, string roomId)
+    {
+        var clientId =  Guid.NewGuid().ToString();
+
+        var client = new ClientDTO
+        {
+            ClientId = clientId,
+            socket =  socket,
+            RoomId = roomId,
+            status = "JOINED",
+            ConnectedAt = DateTimeOffset.UtcNow
+        };
+        
+        _Clients.TryAdd(clientId, client);
+        
+        _logger.LogInformation($"[RTCConnectionManager] {clientId} 클라이언트 등록 완료");
+        return clientId;
+    }
+
+    public void ChangeRoom(string clientId, string roomId)
+    {
+        if (_Clients.TryGetValue(clientId, out var client))
+        {
+            client.RoomId = roomId;
+            client.LastUpdatedAt = DateTimeOffset.UtcNow;
+        }
+    }
+
+    private async void SendMessageAsync(WebSocket socket, string message)
+    {
+        var messageJson = new JObject();
+        
+        messageJson.Add("message", message);
+        
+        var response = new WebSocketMessage
+        {
+            Type = "System",
+            Payload = messageJson.ToString(),
+            Timestamp = DateTimeOffset.UtcNow
+        };
+        var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(response));
+        await socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+    }
     
 }
 
