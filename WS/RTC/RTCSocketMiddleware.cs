@@ -158,7 +158,7 @@ public class RTCSocketMiddleware
 
                                 var clientMessage = new WebSocketMessage
                                 {
-                                    Type = "System",
+                                    Type = "Joined",
                                     Payload = clientId,
                                     Timestamp = DateTimeOffset.UtcNow
                                 };

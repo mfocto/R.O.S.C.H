@@ -1,4 +1,4 @@
-let roomId = "UNITY-1" // 카메라 선택에 따라 바뀔 값
+let roomId = ''        // 카메라 선택에 따라 바뀔 값
 let clientId = ''      // 클라이언트 아이디
 const video = document.getElementById('video')
 
@@ -50,17 +50,18 @@ socket.onmessage = (message) => {
     
     // System 메시지는 콘솔로 출력
     if (data.Type === "System") {
-        console.log(`\x1b[31m[SystemMessage] ${data.Payload}`)
+        console.log(`\x1b[35m[SystemMessage] ${data.Payload}`)
     }
     
     if (data.Type === "Joined") {
         clientId = data.Payload
-        
+        console.log(clientId);
         // broadcaster 목록 요청
-        const broadcastListOffer = new WebSocketMessage("BroadcastList", JSON.stringify({roomId: roomId}), clientId)
+        const broadcastListOffer = new WebSocketMessage("BroadcasterList", JSON.stringify({roomId: roomId}), clientId)
+        socket.send(JSON.stringify(broadcastListOffer))
     }
 
-    if (data.Type === "broadcastList") {
+    if (data.Type === "broadcasterList") {
         console.log(data.Payload)
     }
     

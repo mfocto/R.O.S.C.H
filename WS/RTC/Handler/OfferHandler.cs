@@ -87,7 +87,7 @@ public class OfferHandler : IMessageHandler
 
         return new WebSocketMessage
         {
-            Type = "offer_response",
+            Type = "System",
             Payload = JsonSerializer.Serialize(response),
             Timestamp = DateTimeOffset.UtcNow
         };

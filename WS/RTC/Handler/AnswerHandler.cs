@@ -86,7 +86,7 @@ public class AnswerHandler: IMessageHandler
         
         return new WebSocketMessage
         {
-            Type = "answer_response",
+            Type = "System",
             Payload = JsonSerializer.Serialize(response),
             Timestamp = DateTimeOffset.UtcNow
         };

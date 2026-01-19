@@ -100,7 +100,7 @@ public class ICEHandler : IMessageHandler
 
         return new WebSocketMessage
         {
-            Type = "ice_response",
+            Type = "System",
             Payload = JsonSerializer.Serialize(response),
             Timestamp = DateTimeOffset.Now
         };
