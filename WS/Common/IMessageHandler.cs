@@ -1,9 +1,7 @@
-﻿using R.O.S.C.H.WS.Models;
-
-namespace R.O.S.C.H.WS.Common;
+﻿namespace R.O.S.C.H.WS.Common;
 
 public interface IMessageHandler
 {
     string MessageType { get; } 
-    Task<WebSocketMessage?> HandleAsync(WebSocketMessage message, string sessionId);
+    Task<WebSocketMessage?> HandleAsync(WebSocketMessage message, string roomId, string? clientId);
 }
