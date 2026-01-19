@@ -5,10 +5,8 @@ using R.O.S.C.H.WS.RTC.Handler;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(5178);
-});
+builder.WebHost.UseUrls("http://0.0.0.0:5178");
+
 
 builder.Services.AddControllers();
 
@@ -33,6 +31,8 @@ foreach (var handlerType in handlerTypes)
 var app = builder.Build();
 app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromMinutes(1) });
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 
 app.Map("/ws/ros", appBuilder =>

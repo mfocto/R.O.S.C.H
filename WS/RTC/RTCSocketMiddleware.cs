@@ -12,6 +12,10 @@ public class RTCSocketMiddleware
     private readonly ILogger<RTCSocketMiddleware> _logger;
     private readonly Dictionary<string, IMessageHandler> _handlers;
     
+    private string clientType = string.Empty;
+    private string roomId = string.Empty; 
+    private string clientId = string.Empty;
+    
     public RTCSocketMiddleware(
         RequestDelegate next,
         RTCConnectionManager connectionManager,
@@ -34,9 +38,8 @@ public class RTCSocketMiddleware
         
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
     
-        var clientType = context.Request.Query["type"].ToString();
-        var roomId = context.Request.Query["roomId"].ToString();
-        var clientId = string.Empty;
+        clientType = context.Request.Query["type"].ToString();
+        roomId = context.Request.Query["roomId"].ToString();
         
         #region 쿼리스트링 값 검증
         if (String.IsNullOrWhiteSpace(clientType))
@@ -57,26 +60,9 @@ public class RTCSocketMiddleware
         }
         #endregion
 
-        if (clientType.Equals("Broadcaster"))
-        {
-            try
-            {
-                await _connectionManager.AddBroadcaster(webSocket, roomId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"[RTCSocketMiddleware] 브로드캐스터 등록 실패: {roomId}");
-                return;
-            }
-        }
-
-        if (clientType.Equals("Client")) 
-            clientId = _connectionManager.RegisterClient(webSocket, roomId);
-        
-    
         try
         {
-            await HandleWebSocketAsync(webSocket, roomId, clientId, context);
+            await HandleWebSocketAsync(webSocket, roomId, context);
         }
         finally
         {
@@ -97,7 +83,7 @@ public class RTCSocketMiddleware
         }
     }
     
-    public async Task HandleWebSocketAsync(WebSocket socket, string roomId, string? clientId, HttpContext context)
+    public async Task HandleWebSocketAsync(WebSocket socket, string roomId, HttpContext context)
     {
         var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
         _logger.LogInformation($"[RTCSocketMiddleware] {clientIp} 연결");
@@ -150,21 +136,57 @@ public class RTCSocketMiddleware
                             await SendErrorAsync(socket, "잘못된 메시지 형식입니다.");
                             continue;
                         }
-                        
-                        // 핸들러 타입별 처리 후 처리결과 전송
-                        if (_handlers.TryGetValue(message.Type, out var handler))
+
+                        if (message.Type.Equals("Join"))
                         {
-                            var response = await handler.HandleAsync(message, roomId, clientId);
-    
-                            if (response != null)
+                            // join 처리는 별도로 진행
+                            if (clientType.Equals("Broadcaster"))
                             {
-                                await SendMessageAsync(socket, response);
+                                try
+                                {
+                                    await _connectionManager.AddBroadcaster(socket, roomId);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError("[RTCSocketMiddleware] 브로드 캐스터 등록 중 오류 발생 : "  + ex.Message);
+                                    await SendErrorAsync(socket, $"등록 처리 중 오류 발생하였습니다.");
+                                }
+                            }
+                            else if (clientType.Equals("Client"))
+                            {
+                                clientId = _connectionManager.RegisterClient(socket, roomId);
+
+                                var clientMessage = new WebSocketMessage
+                                {
+                                    Type = "System",
+                                    Payload = clientId,
+                                    Timestamp = DateTimeOffset.UtcNow
+                                };
+                                await SendMessageAsync(socket, clientMessage);
+                            }
+                            else
+                            {
+                                _logger.LogError("[RTCSocketMiddleware] 잘못된 클라이언트 타입");
+                                await SendErrorAsync(socket, $"클라이언트 타입은 Broadcaster 와 Client 만 가능합니다.");
                             }
                         }
                         else
                         {
-                            _logger.LogError($"[WebSocketMiddleware] 알 수 없는 메시지 타입: {message.Type}");
-                            await SendErrorAsync(socket, $"지원하지 않는 메시지 타입입니다: {message.Type}");
+                            // 핸들러 타입별 처리 후 처리결과 전송
+                            if (_handlers.TryGetValue(message.Type, out var handler))
+                            {
+                                var response = await handler.HandleAsync(message, roomId, clientId);
+
+                                if (response != null)
+                                {
+                                    await SendMessageAsync(socket, response);
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogError($"[WebSocketMiddleware] 알 수 없는 메시지 타입: {message.Type}");
+                                await SendErrorAsync(socket, $"지원하지 않는 메시지 타입입니다: {message.Type}");
+                            }
                         }
                     }
                     catch (JsonException ex)
