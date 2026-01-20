@@ -1,5 +1,6 @@
-let roomId = ''        // 카메라 선택에 따라 바뀔 값
+let roomId = 'UNITY-1'        // 카메라 선택에 따라 바뀔 값
 let clientId = ''      // 클라이언트 아이디
+let pc = null           // RTC PeerConnection 객체
 const video = document.getElementById('video')
 
 // error log 
@@ -34,7 +35,7 @@ const iceServer = [{urls: ["stun:stun.l.google.com:19302"]}]
 
 
 // socket
-const socket = new WebSocket(`ws://localhost:5178/rtc?type=Client&roomId=${roomId}`)
+const socket = new WebSocket(`ws://localhost:5178/ws/rtc?type=Client&roomId=${roomId}`)
 
 // open시 join 요청 전송
 socket.onopen = () => {
@@ -43,7 +44,7 @@ socket.onopen = () => {
     socket.send(JSON.stringify(joinMessage))
 }
 
-socket.onmessage = (message) => {
+socket.onmessage = async (message) => {
     // message 를 WebSocketMessage 클래스 형태로 치환
     const data = new WebSocketMessage();
     data.convert(message);
@@ -55,19 +56,78 @@ socket.onmessage = (message) => {
     
     if (data.Type === "Joined") {
         clientId = data.Payload
-        console.log(clientId);
-        // broadcaster 목록 요청
-        const broadcastListOffer = new WebSocketMessage("BroadcasterList", JSON.stringify({roomId: roomId}), clientId)
-        socket.send(JSON.stringify(broadcastListOffer))
+        await offerBroadcasterList()  // broadcaster 목록 요청
     }
 
     if (data.Type === "broadcasterList") {
-        console.log(data.Payload)
+        let broadcasters = JSON.parse(data.Payload)
+        
+        if (broadcasters.length > 0) {
+            createPeerConnection()
+            await sendOfferMessage()
+        }
     }
     
     if (data.Type === "answer") {
-        
+        await pc.setRemoteDescription(JSON.parse(data.Payload))
     }
     
-    
+    if (data.Type === 'ice'){
+        await pc.addIceCandidate(JSON.parse(data.Payload))
+    }
 }
+
+// peer connection 생성
+function createPeerConnection(){
+    // 기존 pc정리
+    try {
+        if (pc) {
+            pc.ontrack = null;
+            pc.onicecandidate= null
+            pc.close()
+        }
+    } catch (error) {
+        console.error("[createPeerConnection] peer connection 정리 중 오류")
+    }
+    
+    pc = new RTCPeerConnection({ iceServers: iceServer })
+    
+    pc.addTransceiver('video', {direction: 'recvonly'})
+    
+    pc.ontrack = (e) => {
+        console.log('ontrack', e)
+        
+        video.srcObject = new MediaStream([e.track])
+        video.muted = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.play().catch(console.warn);
+    }
+    
+    pc.onicecandidate = (e) => {
+        if (!e.candidate) return;
+        const iceMessage = new WebSocketMessage("Ice", JSON.stringify(e.candidate), clientId)
+        
+        socket.send(JSON.stringify(iceMessage))
+    }
+}
+
+async function sendOfferMessage () {
+    const offer = await pc.createOffer()
+    await pc.setLocalDescription(offer)
+    const offerMessage = new WebSocketMessage(
+        "Offer",
+        JSON.stringify(offer),
+        clientId
+    )
+    
+    socket.send(JSON.stringify(offerMessage))
+}
+
+async function offerBroadcasterList () {
+    const broadcastListOffer = new WebSocketMessage("BroadcasterList",
+        JSON.stringify({roomId: roomId}),
+        clientId);
+    socket.send(JSON.stringify(broadcastListOffer))
+}
+
