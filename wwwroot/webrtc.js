@@ -1,6 +1,14 @@
 let roomId = 'UNITY-1'        // 카메라 선택에 따라 바뀔 값
 let clientId = ''      // 클라이언트 아이디
 let pc = null           // RTC PeerConnection 객체
+
+let ping = 0;
+let pingStartTime = 0;
+let pingInterval = null;
+
+let pingHistory = []
+let MAX_HISTORY_SIZE = 10;
+
 const video = document.getElementById('video')
 
 // error log 
@@ -42,8 +50,34 @@ socket.onopen = () => {
     const joinMessage = new WebSocketMessage("Join", "", "")
     
     socket.send(JSON.stringify(joinMessage))
+    
+    pingInterval = setInterval(() => {
+        sendPing()
+    }, 5000)
 }
 
+socket.onclose = () => {
+    if (pingInterval) {
+        clearInterval(pingInterval)
+        pingInterval = null
+    }
+}
+
+// ping 체크
+function sendPing() {
+    if (socket.readyState === WebSocket.OPEN) {
+        pingStartTime = Date.now()
+        
+        console.log('ping', pingStartTime)
+        
+        const pingMessage = new WebSocketMessage("Ping", JSON.stringify(pingStartTime), clientId)
+        
+        socket.send(JSON.stringify(pingMessage))
+    }
+}
+
+
+// 메시지 수신
 socket.onmessage = async (message) => {
     // message 를 WebSocketMessage 클래스 형태로 치환
     const data = new WebSocketMessage();
@@ -51,14 +85,33 @@ socket.onmessage = async (message) => {
     
     // System 메시지는 콘솔로 출력
     if (data.Type === "System") {
-        console.log(`\x1b[35m[SystemMessage] ${data.Payload}`)
+        const received = JSON.parse(data.Payload)
+        
+        console.log(`\x1b[35m[SystemMessage] ${received.Message}`)
+    }
+    
+    // Pong 수신
+    if (data.Type === 'Pong') {
+        const pingTime = Date.now() - pingStartTime
+        
+        pingHistory.push(pingTime)
+        
+        // 최신 10개의 평균만 계산
+        if(pingHistory.length > MAX_HISTORY_SIZE) {
+            pingHistory.shift()
+        }
+        
+        ping  = Math.round(pingHistory.reduce((a, b) => a + b, 0) / pingHistory.length)
+        
+        console.log(ping)
     }
     
     if (data.Type === "Joined") {
         clientId = data.Payload
         await offerBroadcasterList()  // broadcaster 목록 요청
     }
-
+    
+    // 화면 표시할 broadcaster 가 있을 경우에만 로직 실행
     if (data.Type === "broadcasterList") {
         let broadcasters = JSON.parse(data.Payload)
         

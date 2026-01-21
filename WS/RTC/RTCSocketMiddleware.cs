@@ -88,7 +88,7 @@ public class RTCSocketMiddleware
         var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
         _logger.LogInformation($"[RTCSocketMiddleware] {clientIp} 연결");
     
-        var buffer = new byte[1024 * 4];
+        var buffer = new byte[1024 * 8];
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         var cancellationToken = cts.Token;
