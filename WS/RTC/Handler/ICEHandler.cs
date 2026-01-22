@@ -16,7 +16,7 @@ public class ICEHandler : IMessageHandler
     }
     
     public string MessageType => "Ice";
-    public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message, string roomId, string? clientId)
+    public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message)
     {
         try
         {
@@ -72,6 +72,7 @@ public class ICEHandler : IMessageHandler
             Type = "ice",
             Payload = message,
             SenderId = sender,
+            ReceiverId = to,
             Timestamp = DateTimeOffset.Now
         };
         

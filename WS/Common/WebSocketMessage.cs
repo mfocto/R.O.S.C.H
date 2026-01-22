@@ -6,4 +6,6 @@ public class WebSocketMessage
     public string Payload { get; set; } = string.Empty;
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.Now;
     public string? SenderId { get; set; }
+    public string SenderType { get; set; } = string.Empty;
+    public string? ReceiverId { get; set; }
 }

@@ -19,7 +19,7 @@ public class BroadcasterListHandler: IMessageHandler
     }
     
     public string MessageType => "BroadcasterList";
-    public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message, string roomId, string? clientId)
+    public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message)
     {
         try
         {

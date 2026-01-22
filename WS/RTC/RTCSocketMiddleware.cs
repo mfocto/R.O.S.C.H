@@ -145,6 +145,9 @@ public class RTCSocketMiddleware
                                 try
                                 {
                                     await _connectionManager.AddBroadcaster(socket, roomId);
+
+                                    await SendMessageAsync(socket, new WebSocketMessage{Type="System", Payload="브로드캐스터 등록 완료", Timestamp = DateTimeOffset.UtcNow});
+                                    _logger.LogInformation("[RTCSocketMiddleware] broadcasterList : " + _connectionManager.GetBroadcasters().Count);
                                 }
                                 catch (Exception ex)
                                 {
@@ -175,7 +178,7 @@ public class RTCSocketMiddleware
                             // 핸들러 타입별 처리 후 처리결과 전송
                             if (_handlers.TryGetValue(message.Type, out var handler))
                             {
-                                var response = await handler.HandleAsync(message, roomId, clientId);
+                                var response = await handler.HandleAsync(message);
 
                                 if (response != null)
                                 {

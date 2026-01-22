@@ -1,6 +1,7 @@
 let roomId = 'UNITY-1'        // 카메라 선택에 따라 바뀔 값
 let clientId = ''      // 클라이언트 아이디
 let pc = null           // RTC PeerConnection 객체
+let camera = "Main"             // video 에 표시할 카메라명
 
 let ping = 0;
 let pingStartTime = 0;
@@ -21,19 +22,23 @@ window.onunhandledrejection = (e) => {
 
 // WebSocketMessage 
 class WebSocketMessage {
-    constructor(Type, Payload, SenderId) {
+    constructor(Type, Payload, SenderId, SenderType, ReceiverId) {
         this.Type = Type;
         this.Payload = Payload;
         this.SenderId = SenderId;
+        this.SenderType = SenderType;
+        this.ReceiverId = ReceiverId;
         this.Timestamp = new Date().toISOString()
     }
     
     convert (message) {
         const d = JSON.parse(message.data)
-        this.Type = d.Type
-        this.Payload = d.Payload
-        this.SenderId = d.SenderId
-        this.Timestamp = d.Timestamp
+        this.Type = d.Type;
+        this.Payload = d.Payload;
+        this.SenderId = d.SenderId;
+        this.SenderType = d.SenderType;
+        this.ReceiverId = d.ReceiverId;
+        this.Timestamp = d.Timestamp;
     }
     
 }
@@ -47,7 +52,7 @@ const socket = new WebSocket(`ws://localhost:5178/ws/rtc?type=Client&roomId=${ro
 
 // open시 join 요청 전송
 socket.onopen = () => {
-    const joinMessage = new WebSocketMessage("Join", "", "")
+    const joinMessage = new WebSocketMessage("Join", "", "", "Client", "")
     
     socket.send(JSON.stringify(joinMessage))
     
@@ -70,7 +75,7 @@ function sendPing() {
         
         console.log('ping', pingStartTime)
         
-        const pingMessage = new WebSocketMessage("Ping", JSON.stringify(pingStartTime), clientId)
+        const pingMessage = new WebSocketMessage("Ping", JSON.stringify(pingStartTime), clientId, "Client", "")
         
         socket.send(JSON.stringify(pingMessage))
     }
@@ -108,7 +113,7 @@ socket.onmessage = async (message) => {
     
     if (data.Type === "Joined") {
         clientId = data.Payload
-        await offerBroadcasterList()  // broadcaster 목록 요청
+        await sendMessage("BroadcasterList", JSON.stringify({roomId: roomId}), roomId)
     }
     
     // 화면 표시할 broadcaster 가 있을 경우에만 로직 실행
@@ -117,7 +122,11 @@ socket.onmessage = async (message) => {
         
         if (broadcasters.length > 0) {
             createPeerConnection()
-            await sendOfferMessage()
+            
+            const offer = pc.createOffer()
+            await pc.setLocalDescription(offer)
+
+            await sendMessage("Offer", JSON.stringify(offer), "")
         }
     }
     
@@ -131,7 +140,7 @@ socket.onmessage = async (message) => {
 }
 
 // peer connection 생성
-function createPeerConnection(){
+async function createPeerConnection(){
     // 기존 pc정리
     try {
         if (pc) {
@@ -157,30 +166,14 @@ function createPeerConnection(){
         video.play().catch(console.warn);
     }
     
-    pc.onicecandidate = (e) => {
+    pc.onicecandidate = async (e) => {
         if (!e.candidate) return;
-        const iceMessage = new WebSocketMessage("Ice", JSON.stringify(e.candidate), clientId)
-        
-        socket.send(JSON.stringify(iceMessage))
+        await sendMessage("Ice", JSON.stringify(e.candidate), roomId)
     }
 }
 
-async function sendOfferMessage () {
-    const offer = await pc.createOffer()
-    await pc.setLocalDescription(offer)
-    const offerMessage = new WebSocketMessage(
-        "Offer",
-        JSON.stringify(offer),
-        clientId
-    )
+async function sendMessage (type, payload, receiverId) {
+    const webSocketMessage = new WebSocketMessage(type, payload, clientId, "Client", receiverId)
     
-    socket.send(JSON.stringify(offerMessage))
+    socket.send(JSON.stringify(webSocketMessage))
 }
-
-async function offerBroadcasterList () {
-    const broadcastListOffer = new WebSocketMessage("BroadcasterList",
-        JSON.stringify({roomId: roomId}),
-        clientId);
-    socket.send(JSON.stringify(broadcastListOffer))
-}
-

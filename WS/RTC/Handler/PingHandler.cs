@@ -10,11 +10,11 @@ public class PingHandler(RTCConnectionManager connectionManager, ILogger<PingHan
     private readonly ILogger<PingHandler> _logger = logger;
     private RTCConnectionManager _connectionManager = connectionManager;
     public string MessageType => "Ping";
-    public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message, string roomId, string? clientId)
+    public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message)
     {
         try
         {
-            
+            var clientId = message.SenderId;   
             if (clientId == null || string.IsNullOrWhiteSpace(clientId))
             {
                 _logger.LogError("[PingHandler] clientId is null or empty");

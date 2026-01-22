@@ -16,11 +16,19 @@ public class OfferHandler : IMessageHandler
         _connectionManager = connectionManager;
         _logger = logger;
     }
-    public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message, string roomId, string? clientId)
+    public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message)
     {
+        var clientId = message.SenderId;
+        var roomId = message.ReceiverId;
         _logger.LogInformation($"[OfferHandler] {clientId} Offer");
         try
         {
+            if (string.IsNullOrWhiteSpace(roomId))
+            {
+                _logger.LogError("[OfferHandler] roomId is null");
+                return CreateMessage(false, roomId, "ReceiverId가 필요합니다.");
+            } 
+            
             // roomId로 브로드캐스터 등록되어있는지 확인
             var broadcaster = _connectionManager.GetBroadcasterByRoomId(roomId);
 

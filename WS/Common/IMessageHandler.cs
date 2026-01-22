@@ -3,5 +3,5 @@
 public interface IMessageHandler
 {
     string MessageType { get; } 
-    Task<WebSocketMessage?> HandleAsync(WebSocketMessage message, string roomId, string? clientId);
+    Task<WebSocketMessage?> HandleAsync(WebSocketMessage message);
 }

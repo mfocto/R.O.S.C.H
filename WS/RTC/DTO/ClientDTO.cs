@@ -7,7 +7,8 @@ public class ClientDTO
     public string ClientId { get; set; } = string.Empty;
     public required WebSocket Socket { get; set; }
     public string? RoomId { get; set; }
-    
+
+    public string Camera { get; set; } = "Main";
     // JOINED, OFFER_SEND, ANSWER_RECEIVED, CONNECTED, DISCONNECTED
     public string Status {get; set;} = "DISCONNECTED";
     
