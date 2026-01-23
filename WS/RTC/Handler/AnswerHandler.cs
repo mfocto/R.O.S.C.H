@@ -19,6 +19,7 @@ public class AnswerHandler: IMessageHandler
 
     public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message)
     {
+        var roomId = message.SenderId;
         _logger.LogInformation($"[AnswerHandler] {roomId} Answer");
         try
         {

@@ -18,61 +18,57 @@ public class ICEHandler : IMessageHandler
     public string MessageType => "Ice";
     public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message)
     {
+        string roomId = string.Empty;
         try
         {
-            WebSocket? to;
-            string sender = string.Empty;
-            if (String.IsNullOrWhiteSpace(clientId))
+            if (message.SenderType.Equals("Broadcaster"))
             {
-                // clientId 가 없을경우 broadcaster 쪽 
-                if (String.IsNullOrWhiteSpace(message.SenderId))
-                {
-                    _logger.LogError("[ICEHandler] SenderId가 없습니다.");
-                    return CreateMessage(false, roomId, "SenderId가 필요합니다.");
-                }
-                
-                var client = _connectionManager.GetClient(message.SenderId);
-                
+                // Broadcaster 면 receiverId 기준으로 Client 객체 찾아오기
+                roomId = message.SenderId;
+                var client = _connectionManager.GetClient(message.ReceiverId);
+
                 if (client == null)
                 {
-                    _logger.LogError($"[ICEHandler] 클라이언트를 찾을 수 없습니다: {message.SenderId}");
-                    return CreateMessage(false, roomId, $"클라이언트를 찾을 수 없습니다: {message.SenderId}");
+                    _logger.LogError($"[ICEHandler] {message.ReceiverId}에 해당하는 Client를 찾을 수 없습니다.");
+                    return null;
                 }
-            
-                to = client.Socket;
-                sender = roomId;
+
+                await SendICEAsync(message.SenderId, message.ReceiverId, client.Socket, message.Payload);
             }
             else
             {
-                to = _connectionManager.GetBroadcasterByRoomId(roomId);
-                sender = clientId;
+                roomId = message.ReceiverId;
+                var broadcaster = _connectionManager.GetBroadcasterByRoomId(message.ReceiverId);
+
+                if (broadcaster == null)
+                {
+                    _logger.LogError($"[ICEHandler] {message.ReceiverId}에 해당하는 Broadcaster 찾을 수 없습니다.");
+                    return null;
+                }
+                
+                await SendICEAsync(message.SenderId, message.ReceiverId, broadcaster, message.Payload);
             }
-
-            if (to == null)
-            {
-                _logger.LogError("[ICEHandler] ice전송 대상이 없습니다.");
-                return CreateMessage(false, roomId, "ice전송 대상이 없습니다.");
-            }
-
-            await SendICEAsync(sender, to, message.Payload);
-
-            return CreateMessage(true, roomId, $"[ICEHandler] {sender} 에서 ice 전송");
+            
+            // ice는 각 전송마다 메시지 리턴하면 너무 많이 전송함
+            return null;
         }
         catch (Exception ex)
         {
             _logger.LogError("[ICEHandler] ice전송 중 오류 발생");
-            return CreateMessage(false, roomId, ex.Message);
+            return CreateMessage(false, 
+                roomId,
+                ex.Message);
         }
     }
 
-    public async Task SendICEAsync(string sender, WebSocket to, string message)
+    public async Task SendICEAsync(string sender, string receiver, WebSocket to, string message)
     {
         var msg = new WebSocketMessage
         {
             Type = "ice",
             Payload = message,
             SenderId = sender,
-            ReceiverId = to,
+            ReceiverId = receiver,
             Timestamp = DateTimeOffset.Now
         };
         

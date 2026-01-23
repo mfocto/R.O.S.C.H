@@ -23,7 +23,8 @@ public class BroadcasterListHandler: IMessageHandler
     {
         try
         {
-            if (clientId == null)
+            var clientId = message.SenderId;
+            if (string.IsNullOrWhiteSpace(clientId))
             {
                 _logger.LogError("[BroadcasterListHandler] clientId 값이 없습니다.");
                 return CreateMessage(false, "clientId 값이 없습니다.");
@@ -33,16 +34,8 @@ public class BroadcasterListHandler: IMessageHandler
             var broadcasters = _connectionManager.GetBroadcasters();
             if (broadcasters.Count == 0)
             {
-                // _logger.LogWarning("[BroadcasterListHandler] 현재 등록되어있는 브로드캐스터가 없습니다.");
-                // return CreateMessage(false, "현재 등록되어있는 브로드캐스터가 없습니다.");
-                
-                // 테스트용 코드
-                var col = new HashSet<string>();
-                col.Add("UNITY-1");
-                col.Add("UNITY-2");
-                col.Add("UNITY-3");
-                
-                broadcasters = col;
+                _logger.LogWarning("[BroadcasterListHandler] 현재 등록되어있는 브로드캐스터가 없습니다.");
+                return CreateMessage(false, "현재 등록되어있는 브로드캐스터가 없습니다.");
             }
 
             var client = _connectionManager.GetClient(clientId);
