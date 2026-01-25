@@ -10,7 +10,11 @@ let pingInterval = null;
 let pingHistory = []
 let MAX_HISTORY_SIZE = 10;
 
-const video = document.getElementById('video')
+let video = null;
+let socket = null;
+
+const iceServer = [{urls: ["stun:stun.l.google.com:19302"]}]    
+
 
 // error log 
 window.onerror = (m, s, l, c, e)=> 
@@ -43,12 +47,6 @@ class WebSocketMessage {
     
 }
 
-// google STUN 서버
-const iceServer = [{urls: ["stun:stun.l.google.com:19302"]}]   
-
-
-// socket
-const socket = new WebSocket(`ws://localhost:5178/ws/rtc?type=Client&roomId=${roomId}`)
 
 // open시 join 요청 전송
 socket.onopen = () => {
@@ -73,69 +71,124 @@ function sendPing() {
     if (socket.readyState === WebSocket.OPEN) {
         pingStartTime = Date.now()
         
-        console.log('ping', pingStartTime)
-        
         const pingMessage = new WebSocketMessage("Ping", JSON.stringify(pingStartTime), clientId, "Client", "")
         
         socket.send(JSON.stringify(pingMessage))
     }
 }
 
+function initWebRTC() {
+    console.log('Initializing WebRTC...');
+    
+    // video 엘리먼트 찾기
+    video = document.getElementById('video');
+    if (!video) {
+        console.error('Video element not found!');
+        return;
+    }
+    
+    // 이미 연결되어 있으면 정리
+    cleanupWebRTC();
+    
+    // WebSocket 연결
+    socket = new WebSocket(`ws://localhost:5178/ws/rtc?type=Client&roomId=${roomId}`)
+    
+    socket.onopen = () => {
+        console.log('WebSocket connected');
+        const joinMessage = new WebSocketMessage("Join", "", "", "Client", "")
+        socket.send(JSON.stringify(joinMessage))
+        
+        pingInterval = setInterval(() => {
+            sendPing()
+        }, 5000)
+    }
+    
+    socket.onclose = () => {
+        console.log('WebSocket closed');
+        if (pingInterval) {
+            clearInterval(pingInterval)
+            pingInterval = null
+        }
+    }
+    
+    socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    }
+    
+    socket.onmessage = handleSocketMessage;
+}
 
 // 메시지 수신
-socket.onmessage = async (message) => {
-    // message 를 WebSocketMessage 클래스 형태로 치환
+async function handleSocketMessage(message) {
     const data = new WebSocketMessage();
     data.convert(message);
     
     // System 메시지는 콘솔로 출력
     if (data.Type === "System") {
         const received = JSON.parse(data.Payload)
-        
-        console.log(`\x1b[35m[SystemMessage] ${received.Message}`)
+        console.log(`[SystemMessage] ${received.message || received.Message}`)
     }
     
     // Pong 수신
     if (data.Type === 'Pong') {
         const pingTime = Date.now() - pingStartTime
-        
         pingHistory.push(pingTime)
         
-        // 최신 10개의 평균만 계산
         if(pingHistory.length > MAX_HISTORY_SIZE) {
             pingHistory.shift()
         }
         
-        ping  = Math.round(pingHistory.reduce((a, b) => a + b, 0) / pingHistory.length)
+        ping = Math.round(pingHistory.reduce((a, b) => a + b, 0) / pingHistory.length)
         
-        console.log(ping)
+        // ping 표시 업데이트
+        const pingEl = document.getElementById('ping');
+        if (pingEl) pingEl.innerText = ping + 'ms';
     }
     
     if (data.Type === "Joined") {
         clientId = data.Payload
+        console.log('Client joined with ID:', clientId);
         await sendMessage("BroadcasterList", JSON.stringify({roomId: roomId}), roomId)
     }
     
-    // 화면 표시할 broadcaster 가 있을 경우에만 로직 실행
+    // 화면 표시할 broadcaster가 있을 경우에만 로직 실행
     if (data.Type === "broadcasterList") {
         let broadcasters = JSON.parse(data.Payload)
+        console.log('Broadcasters:', broadcasters);
         
         if (broadcasters.length > 0) {
-            createPeerConnection()
+            await createPeerConnection()
             
-            const offer = pc.createOffer()
+            const offer = await pc.createOffer()
             await pc.setLocalDescription(offer)
 
-            await sendMessage("Offer", JSON.stringify(offer), "")
+            await sendMessage("Offer", JSON.stringify(offer), roomId)
+        } else {
+            console.log('No broadcasters available');
         }
     }
     
     if (data.Type === "answer") {
-        await pc.setRemoteDescription(JSON.parse(data.Payload))
+        console.log("Answer received:", data.Payload)
+        
+        const answerSdp = data.Payload;
+        
+        console.log(`Answer: ${answerSdp}`);
+        await pc.setRemoteDescription(JSON.parse(answerSdp));
     }
     
     if (data.Type === 'ice'){
+        console.log('ICE candidate received');
         await pc.addIceCandidate(JSON.parse(data.Payload))
+    }
+    
+    if (data.Type === "broadcasterUpdate") {
+        const update = JSON.parse(data.Payload);
+        console.log(`Broadcaster ${update.action}: ${update.roomId}`);
+        
+        if (update.action === "joined" && update.roomId === roomId) {
+            await sendMessage("BroadcasterList", JSON.stringify({roomId: roomId}), roomId);
+        }
     }
 }
 
@@ -159,6 +212,12 @@ async function createPeerConnection(){
     pc.ontrack = (e) => {
         console.log('ontrack', e)
         
+        // video 엘리먼트 확인
+        if (!video) {
+            console.error('Video element not found in ontrack');
+            return;
+        }
+
         video.srcObject = new MediaStream([e.track])
         video.muted = true;
         video.autoplay = true;
@@ -176,4 +235,28 @@ async function sendMessage (type, payload, receiverId) {
     const webSocketMessage = new WebSocketMessage(type, payload, clientId, "Client", receiverId)
     
     socket.send(JSON.stringify(webSocketMessage))
+}
+
+// WebRTC 정리 함수
+function cleanupWebRTC() {
+    console.log('Cleaning up WebRTC...');
+    
+    if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+    }
+    
+    if (pc) {
+        pc.close();
+        pc = null;
+    }
+    
+    if (socket) {
+        socket.close();
+        socket = null;
+    }
+    
+    if (video) {
+        video.srcObject = null;
+    }
 }

@@ -12,9 +12,7 @@ public class RTCSocketMiddleware
     private readonly ILogger<RTCSocketMiddleware> _logger;
     private readonly Dictionary<string, IMessageHandler> _handlers;
     
-    private string clientType = string.Empty;
-    private string roomId = string.Empty; 
-    private string clientId = string.Empty;
+    
     
     public RTCSocketMiddleware(
         RequestDelegate next,
@@ -38,8 +36,10 @@ public class RTCSocketMiddleware
         
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
     
-        clientType = context.Request.Query["type"].ToString();
-        roomId = context.Request.Query["roomId"].ToString();
+        
+        string clientId = string.Empty;
+        string clientType = context.Request.Query["type"].ToString();
+        string roomId = context.Request.Query["roomId"].ToString();
         
         #region 쿼리스트링 값 검증
         if (String.IsNullOrWhiteSpace(clientType))
@@ -62,7 +62,7 @@ public class RTCSocketMiddleware
 
         try
         {
-            await HandleWebSocketAsync(webSocket, roomId, context);
+            clientId = await HandleWebSocketAsync(webSocket, roomId, clientType, context);
         }
         finally
         {
@@ -83,7 +83,7 @@ public class RTCSocketMiddleware
         }
     }
     
-    public async Task HandleWebSocketAsync(WebSocket socket, string roomId, HttpContext context)
+    public async Task<string> HandleWebSocketAsync(WebSocket socket, string roomId, string clientType, HttpContext context)
     {
         var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
         _logger.LogInformation($"[RTCSocketMiddleware] {clientIp} 연결");
@@ -92,6 +92,8 @@ public class RTCSocketMiddleware
 
         using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
         var cancellationToken = cts.Token;
+
+        string clientId = string.Empty;
         
         try
         {
@@ -104,14 +106,14 @@ public class RTCSocketMiddleware
 
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogInformation($"[RTCSocketMiddleware] 타임아웃으로 연결 종료: <{roomId}>{clientId}");
+                    _logger.LogInformation($"[RTCSocketMiddleware] 타임아웃으로 연결 종료: <{roomId}>{clientType} - {clientIp}");
                     break;
                 }
                 
                 // 종료요청처리
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    _logger.LogInformation($"[RTCSocketMiddleware] 종료 요청: <{roomId}>{clientId}");
+                    _logger.LogInformation($"[RTCSocketMiddleware] 종료 요청: <{roomId}>{clientType} - {clientIp}");
     
                     await socket.CloseAsync(
                         WebSocketCloseStatus.NormalClosure,
@@ -212,6 +214,8 @@ public class RTCSocketMiddleware
         {
             _logger.LogInformation($"[WebSocketMiddleware] WebSocket 연결 종료: <{roomId}>{clientId}");
         }
+        
+        return clientId;
     }
     
     // 메시지 전송

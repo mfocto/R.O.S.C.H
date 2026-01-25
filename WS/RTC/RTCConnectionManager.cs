@@ -45,10 +45,44 @@ public class RTCConnectionManager(ILogger<RTCConnectionManager> logger)
             }
         }
         
-        _BroadCasters.TryAdd(roomId, socket);
+        _BroadCasters[roomId] = socket;
         
         _logger.LogInformation($"[RTCConnectionManager] {roomId} 브로드캐스터 등록 완료");
         await SendMessageAsync(socket, $"{roomId} - Broadcaster 등록되었습니다");
+        
+        await NotifyClientsAboutBroadcaster(roomId, "joined");
+    }
+    
+    private async Task NotifyClientsAboutBroadcaster(string roomId, string action)
+    {
+        var notification = new WebSocketMessage
+        {
+            Type = "broadcasterUpdate",
+            Payload = JsonSerializer.Serialize(new { roomId, action }),
+            Timestamp = DateTimeOffset.UtcNow
+        };
+    
+        var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(notification));
+    
+        foreach (var client in _Clients.Values)
+        {
+            if (client.Socket.State == WebSocketState.Open)
+            {
+                try
+                {
+                    await client.Socket.SendAsync(
+                        new ArraySegment<byte>(bytes), 
+                        WebSocketMessageType.Text, 
+                        true, 
+                        CancellationToken.None
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"클라이언트에게 알림 전송 실패: {client.ClientId}, {ex.Message}");
+                }
+            }
+        }
     }
     
     // 연결해제

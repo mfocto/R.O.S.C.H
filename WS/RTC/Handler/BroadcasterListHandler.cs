@@ -1,4 +1,5 @@
-﻿using System.Net.WebSockets;
+﻿using System.Diagnostics;
+using System.Net.WebSockets;
 using System.Text.Json;
 using R.O.S.C.H.WS.Common;
 
@@ -32,6 +33,10 @@ public class BroadcasterListHandler: IMessageHandler
             
             // 현재 등록되어있는 broadcaster 전체 조회
             var broadcasters = _connectionManager.GetBroadcasters();
+            foreach (string b in broadcasters)
+            {
+                _logger.LogInformation(b);
+            }
             if (broadcasters.Count == 0)
             {
                 _logger.LogWarning("[BroadcasterListHandler] 현재 등록되어있는 브로드캐스터가 없습니다.");

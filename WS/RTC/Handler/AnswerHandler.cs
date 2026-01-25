@@ -1,4 +1,5 @@
-﻿using System.Net.WebSockets;
+﻿using System.Diagnostics;
+using System.Net.WebSockets;
 using System.Text.Json;
 using R.O.S.C.H.WS.Common;
 
@@ -30,7 +31,7 @@ public class AnswerHandler: IMessageHandler
             }
             
             // answer 전송
-            await SendAnswerAsync(roomId, message.SenderId, message.Payload);
+            await SendAnswerAsync(roomId, message.ReceiverId, message.Payload);
             
             _connectionManager.UpdateClient(message.SenderId, roomId, "ANSWER_RECEIVED");
             
@@ -65,6 +66,7 @@ public class AnswerHandler: IMessageHandler
 
         if (socket.State == WebSocketState.Open)
         {
+            _logger.LogInformation("[AnswerHandler] socket opened");
             await client.Socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true,
                 CancellationToken.None);
         }
