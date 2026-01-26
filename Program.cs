@@ -1,4 +1,6 @@
 using System.Reflection;
+using R.O.S.C.H.adapter;
+using R.O.S.C.H.Worker;
 using R.O.S.C.H.WS.Common;
 using R.O.S.C.H.WS.RTC;
 using R.O.S.C.H.WS.RTC.Handler;
@@ -12,7 +14,8 @@ builder.Services.AddControllers();
 
 
 builder.Services.AddSingleton<RTCConnectionManager>();
-
+builder.Services.AddSingleton<OpcUaAdapter>();
+builder.Services.AddHostedService<StatePollingWorker>();
 #region 메시지 핸들러 자동등록
 
 var handlerTypes = Assembly.GetExecutingAssembly()
