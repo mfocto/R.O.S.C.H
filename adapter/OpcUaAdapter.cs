@@ -275,6 +275,7 @@ public class OpcUaAdapter
         List<string> readValue = new List<string>();
         
         // esp 세팅 
+        // TODO : esp 연결 되면 확인할 것
         // foreach (var r in espJson)
         // {
         //     readValue.Add($"{r["channel"]}.{r["device"]}.{r["tag"]}");
@@ -326,6 +327,58 @@ public class OpcUaAdapter
             _logger.LogError(ex.Message);
         }
         return new Dictionary<string, object>();
+    }
+
+    public async Task WriteStateAsync(CancellationToken ct, string channel, string device, string tag, string value)
+    {
+        await ConnectAsync(ct);
+        
+        _logger.LogInformation("[OpcUaClientAdapter] OPC-UA에 데이터 WRITE\n" +
+                               $"Channel : {channel}"+
+                               $"Device : {device}"+
+                               $"Tag : {tag}"+
+                               $"Value : {value}");
+
+        try
+        {
+            var nodeId = BuildKepwareNodeId(channel, device, tag);
+
+            var writeValue = new WriteValue
+            {
+                NodeId = nodeId,
+                AttributeId = Attributes.Value,
+                Value = new DataValue(new Variant(value))
+            };
+
+            WriteValueCollection values = new WriteValueCollection { writeValue };
+
+            WriteResponse response = await _session!.WriteAsync(null, values, ct);
+            var res = response.Results;
+
+            if (res != null && res.Count > 0)
+            {
+                if (StatusCode.IsBad(res[0]))
+                {
+                    // 쓰기 실패
+                    throw new InvalidOperationException($"Writefailed :  {res[0]}");
+                }
+
+                _logger.LogInformation("[OpcUaClientAdapter] OPC-UA에 데이터 WRITE 성공!");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"[OpcUaAdapter] OPC-UA에 데이터 전송 실패\n{ex.Message}");
+            
+            // 연결 끊어진 경우 재연결 시도
+            if (_session == null || !_session.Connected)
+            {
+                _session = null;
+                StartReconnectTask(CancellationToken.None);
+            }
+
+            throw;
+        }
     }
 
     public void Dispose()
