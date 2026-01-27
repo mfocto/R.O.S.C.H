@@ -90,7 +90,7 @@ public class RTCSocketMiddleware
     
         var buffer = new byte[1024 * 8];
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         var cancellationToken = cts.Token;
 
         string clientId = string.Empty;

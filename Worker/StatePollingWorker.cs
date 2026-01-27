@@ -24,10 +24,11 @@ public class StatePollingWorker: BackgroundService
     
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        while (true)
+        while (!ct.IsCancellationRequested)
         {
             var opcExt = await _opc.ReadStateAsync(ct);
-            _logger.LogInformation("읽는중");
+            
+            await Task.Delay(5000, ct);
         }
     }
 }

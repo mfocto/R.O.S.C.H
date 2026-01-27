@@ -154,7 +154,6 @@ async function handleSocketMessage(message) {
     // 화면 표시할 broadcaster가 있을 경우에만 로직 실행
     if (data.Type === "broadcasterList") {
         let broadcasters = JSON.parse(data.Payload)
-        console.log('Broadcasters:', broadcasters);
         
         if (broadcasters.length > 0) {
             await createPeerConnection()
@@ -169,7 +168,6 @@ async function handleSocketMessage(message) {
     }
     
     if (data.Type === "answer") {
-        console.log("Answer received:", data.Payload)
         
         const answerSdp = data.Payload;
         
@@ -184,7 +182,6 @@ async function handleSocketMessage(message) {
     
     if (data.Type === "broadcasterUpdate") {
         const update = JSON.parse(data.Payload);
-        console.log(`Broadcaster ${update.action}: ${update.roomId}`);
         
         if (update.action === "joined" && update.roomId === roomId) {
             await sendMessage("BroadcasterList", JSON.stringify({roomId: roomId}), roomId);
@@ -210,8 +207,6 @@ async function createPeerConnection(){
     pc.addTransceiver('video', {direction: 'recvonly'})
     
     pc.ontrack = (e) => {
-        console.log('ontrack', e)
-        
         // video 엘리먼트 확인
         if (!video) {
             console.error('Video element not found in ontrack');

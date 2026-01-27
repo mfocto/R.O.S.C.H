@@ -1,4 +1,6 @@
-﻿using Opc.Ua;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Opc.Ua;
 using Opc.Ua.Client;
 
 namespace R.O.S.C.H.adapter;
@@ -22,6 +24,7 @@ public class OpcUaAdapter
     private CancellationTokenSource _cts;
 
     private string _channel;
+    private JObject? deviceJson;
 
     public OpcUaAdapter(ILogger<OpcUaAdapter> logger, IConfiguration config)
     {
@@ -34,6 +37,20 @@ public class OpcUaAdapter
         _connectionTimeout = config.GetValue<int>("OpcUa:ConnectionTimeoutMS");
         _sessionTimeout = config.GetValue<int>("OpcUa:SessionTimeoutMS");
         _appConfig = CreateOpcUaConfiguration();
+        
+        // 파일 읽어서 device 목록 세팅
+        string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DeviceList.json");
+
+        if (File.Exists(filePath))
+        {
+            string jsonString = File.ReadAllText(filePath);
+            
+            deviceJson = JsonConvert.DeserializeObject<JObject>(jsonString);
+        }
+        else
+        {
+            _logger.LogError("[OpcUaAdapter] 디바이스 설정 정보를 읽을 수 없습니다.");
+        }
     }
 
     /// <summary>
@@ -248,16 +265,35 @@ public class OpcUaAdapter
     public async Task<IDictionary<string, object>> ReadStateAsync(CancellationToken ct)
     {
         await ConnectAsync(ct);
+
+        JObject readDeviceJson = deviceJson["read"].ToObject<JObject>();
         
-        // 테스트용 
-        var nodesToRead = new ReadValueIdCollection
+        var espJson = readDeviceJson["esp"].ToObject<JArray>();
+        var stmJson = readDeviceJson["stm"].ToObject<JArray>();
+        
+        ReadValueIdCollection readValueIdCollection = new();
+        List<string> readValue = new List<string>();
+        
+        // esp 세팅 
+        // foreach (var r in espJson)
+        // {
+        //     readValue.Add($"{r["channel"]}.{r["device"]}.{r["tag"]}");
+        //     readValueIdCollection.Add(new ReadValueId
+        //     {
+        //         NodeId = BuildKepwareNodeId(r["channel"].ToString(),r["device"].ToString(),r["tag"].ToString()), AttributeId = Attributes.Value
+        //     });
+        // }
+        
+        // stm 세팅
+        foreach (var r in stmJson)
         {
-            new ReadValueId{ NodeId = BuildKepwareNodeId("STM","Stm_yolo","TargetState"), AttributeId = Attributes.Value},
-            new ReadValueId{ NodeId = BuildKepwareNodeId("ModbusTCP","ESP32_01","PosY"), AttributeId = Attributes.Value},
-            new ReadValueId{ NodeId = BuildKepwareNodeId("ModbusTCP","ESP32_01","PosTheta"), AttributeId = Attributes.Value},
-            new ReadValueId{ NodeId = BuildKepwareNodeId("ModbusTCP","ESP32_01","State"), AttributeId = Attributes.Value}
-        };
-        
+            readValue.Add($"{r["channel"]}.{r["device"]}.{r["tag"]}");
+            readValueIdCollection.Add(new ReadValueId
+            {
+                NodeId = BuildKepwareNodeId(r["channel"].ToString().Trim(),r["device"].ToString().Trim(),r["tag"].ToString().Trim()),
+                AttributeId = Attributes.Value
+            });
+        }
         // 값 읽기
         try
         {
@@ -265,18 +301,23 @@ public class OpcUaAdapter
                 null,
                 0,
                 TimestampsToReturn.Both,
-                nodesToRead,
+                readValueIdCollection,
                 ct);
 
             var results = readResponse.Results;
             var result = new Dictionary<string, object>();
 
-            foreach (var r in results)
+            
+            for (int i = 0 ; i < results.Count; i++)
             {
-                _logger.LogInformation(r.StatusCode.ToString());
-                if (StatusCode.IsGood(r.StatusCode))
+                
+                if (StatusCode.IsGood(results[i].StatusCode))
                 {
-                    _logger.LogInformation(r.Value.ToString());
+                    _logger.LogInformation(readValue[i] + " : " +  results[i].Value);
+                }
+                else
+                {
+                    _logger.LogWarning(readValue[i] + " : " +  results[i].StatusCode);
                 }
             }
         }
@@ -285,5 +326,25 @@ public class OpcUaAdapter
             _logger.LogError(ex.Message);
         }
         return new Dictionary<string, object>();
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+
+        try
+        {
+            if (_session != null && _session.Connected)
+            {
+                _session.CloseAsync().GetAwaiter().GetResult();
+            }
+        }
+        catch (Exception ex) {/**/}
+        
+        _session?.Dispose();
+        _semaphore?.Dispose();
+        
+        _logger.LogInformation("OpcUaClientAdapter disposed. Disconnected from Kepware OPC UA Server.");
     }
 }

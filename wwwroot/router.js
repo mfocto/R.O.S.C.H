@@ -422,3 +422,24 @@ function logout() {
     
     navigate('login');
 }
+
+
+/**
+ * 시간 체크해서 로그인한지 10분 넘었으면 자동 로그아웃 처리
+ * */
+function checkTimeout () {
+    const loginTime = localStorage.getItem('loginTime');
+    
+    if (loginTime) {
+        if ((new Date() - new Date(loginTime)) > (10 * 60 * 1000)) {
+            // 밀리초로 timeout 비교
+            logout()
+        }
+    }
+}
+
+
+setInterval(() => {
+    console.log('시간체크');
+    checkTimeout();
+}, 10000)

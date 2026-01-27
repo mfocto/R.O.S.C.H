@@ -1,0 +1,126 @@
+{
+  "read": {
+    "esp": [
+      {
+        "channel": "ModbusTCP",
+        "device": "ESP32_01",
+        "tag": "PosX"
+      },
+      {
+        "channel": "ModbusTCP",
+        "device": "ESP32_01",
+        "tag": "PosY"
+      },
+      {
+        "channel": "ModbusTCP",
+        "device": "ESP32_01",
+        "tag": "PosTheta"
+      },
+      {
+        "channel": "ModbusTCP",
+        "device": "ESP32_01",
+        "tag": "TargetA"
+      },
+      
+      {
+        "channel": "ModbusTCP",
+        "device": "ESP32_01",
+        "tag": "State"
+      }
+    ],
+    "stm" : [
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "AgvLoadArrived"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "AgvLoadDeparted"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "AgvSortArrived"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "AgvSortDeparted"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "CurrentFloor"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "CurrentSpeedLoad"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "CurrentSpeedMain"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "CurrentSpeedSort"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "CurrentState"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "IsLiftMoving"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "IsRobotDone"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "IsRobotWorking"
+      }
+    ]
+  }, 
+  "write" : {
+    "esp": [
+        {
+        "channel": "ModbusTCP",
+        "device": "ESP32_01",
+        "tag": "Control"
+        }
+    ], 
+    "stm" : [
+      
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "TargetState"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "TargetSpeedSort"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "TargetSpeedMain"
+      },
+      {
+        "channel": "STM",
+        "device": "Stm_yolo",
+        "tag": "TargetSpeedLoad"
+      }
+    ]
+  }
+}
