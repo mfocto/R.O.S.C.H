@@ -106,14 +106,14 @@ public class RTCSocketMiddleware
 
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogInformation($"[RTCSocketMiddleware] 타임아웃으로 연결 종료: <{roomId}>{clientType} - {clientIp}");
+                    _logger.LogDebug($"[RTCSocketMiddleware] 타임아웃으로 연결 종료: <{roomId}>{clientType} - {clientIp}");
                     break;
                 }
                 
                 // 종료요청처리
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    _logger.LogInformation($"[RTCSocketMiddleware] 종료 요청: <{roomId}>{clientType} - {clientIp}");
+                    _logger.LogDebug($"[RTCSocketMiddleware] 종료 요청: <{roomId}>{clientType} - {clientIp}");
     
                     await socket.CloseAsync(
                         WebSocketCloseStatus.NormalClosure,
@@ -149,7 +149,7 @@ public class RTCSocketMiddleware
                                     await _connectionManager.AddBroadcaster(socket, roomId);
 
                                     await SendMessageAsync(socket, new WebSocketMessage{Type="System", Payload="브로드캐스터 등록 완료", Timestamp = DateTimeOffset.UtcNow});
-                                    _logger.LogInformation("[RTCSocketMiddleware] broadcasterList : " + _connectionManager.GetBroadcasters().Count);
+                                    _logger.LogDebug("[RTCSocketMiddleware] broadcasterList : " + _connectionManager.GetBroadcasters().Count);
                                 }
                                 catch (Exception ex)
                                 {

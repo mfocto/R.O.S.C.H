@@ -21,7 +21,7 @@ public class AnswerHandler: IMessageHandler
     public async Task<WebSocketMessage?> HandleAsync(WebSocketMessage message)
     {
         var roomId = message.SenderId;
-        _logger.LogInformation($"[AnswerHandler] {roomId} Answer");
+        _logger.LogDebug($"[AnswerHandler] {roomId} Answer");
         try
         {
             if (String.IsNullOrWhiteSpace(message.SenderId))
@@ -66,7 +66,7 @@ public class AnswerHandler: IMessageHandler
 
         if (socket.State == WebSocketState.Open)
         {
-            _logger.LogInformation("[AnswerHandler] socket opened");
+            _logger.LogDebug("[AnswerHandler] socket opened");
             await client.Socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true,
                 CancellationToken.None);
         }

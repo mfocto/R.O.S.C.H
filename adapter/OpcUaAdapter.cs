@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Collections.Concurrent;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Opc.Ua;
 using Opc.Ua.Client;
@@ -265,7 +266,8 @@ public class OpcUaAdapter
     public async Task<IDictionary<string, object>> ReadStateAsync(CancellationToken ct)
     {
         await ConnectAsync(ct);
-
+        ConcurrentDictionary<string, object> resultDict = new();
+        
         JObject readDeviceJson = deviceJson["read"].ToObject<JObject>();
         
         var espJson = readDeviceJson["esp"].ToObject<JArray>();
@@ -274,24 +276,35 @@ public class OpcUaAdapter
         ReadValueIdCollection readValueIdCollection = new();
         List<string> readValue = new List<string>();
         
+        
         // esp 세팅 
         // TODO : esp 연결 되면 확인할 것
         // foreach (var r in espJson)
         // {
-        //     readValue.Add($"{r["channel"]}.{r["device"]}.{r["tag"]}");
+        //     var channel = r["channel"].ToString();
+        //     var device =  r["device"].ToString();
+        //     var tag = r["tag"].ToString();
+        //     
+        //     readValue.Add($"{channel.ToLower()}_{device.ToLower()}_{tag.ToLower()}");
         //     readValueIdCollection.Add(new ReadValueId
         //     {
-        //         NodeId = BuildKepwareNodeId(r["channel"].ToString(),r["device"].ToString(),r["tag"].ToString()), AttributeId = Attributes.Value
+        //         NodeId = BuildKepwareNodeId(channel.Trim(),device.Trim(),tag.Trim()),
+        //         AttributeId = Attributes.Value
         //     });
         // }
         
         // stm 세팅
         foreach (var r in stmJson)
         {
-            readValue.Add($"{r["channel"]}.{r["device"]}.{r["tag"]}");
+            var channel = r["channel"].ToString();
+            var device =  r["device"].ToString();
+            var tag = r["tag"].ToString();
+            
+            readValue.Add($"{channel.ToLower()}_{device.ToLower()}_{tag.ToLower()}");
             readValueIdCollection.Add(new ReadValueId
             {
-                NodeId = BuildKepwareNodeId(r["channel"].ToString().Trim(),r["device"].ToString().Trim(),r["tag"].ToString().Trim()),
+                
+                NodeId = BuildKepwareNodeId(channel.Trim(),device.Trim(),tag.Trim()),
                 AttributeId = Attributes.Value
             });
         }
@@ -314,6 +327,7 @@ public class OpcUaAdapter
                 
                 if (StatusCode.IsGood(results[i].StatusCode))
                 {
+                    resultDict.TryAdd(readValue[i],  results[i].Value);
                     _logger.LogInformation(readValue[i] + " : " +  results[i].Value);
                 }
                 else
@@ -321,23 +335,26 @@ public class OpcUaAdapter
                     _logger.LogWarning(readValue[i] + " : " +  results[i].StatusCode);
                 }
             }
+
+            return resultDict;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex.Message);
         }
-        return new Dictionary<string, object>();
+
+        return new  Dictionary<string, object>();
     }
 
-    public async Task WriteStateAsync(CancellationToken ct, string channel, string device, string tag, string value)
+    public async Task WriteStateAsync(CancellationToken ct, string channel, string device, string tag, object value)
     {
         await ConnectAsync(ct);
         
-        _logger.LogInformation("[OpcUaClientAdapter] OPC-UA에 데이터 WRITE\n" +
-                               $"Channel : {channel}"+
-                               $"Device : {device}"+
-                               $"Tag : {tag}"+
-                               $"Value : {value}");
+        _logger.LogDebug("[OpcUaClientAdapter] OPC-UA에 데이터 WRITE\n" +
+                               $"Channel : {channel}\n"+
+                               $"Device : {device}\n"+
+                               $"Tag : {tag}\n"+
+                               $"Value : {value}\n");
 
         try
         {
@@ -363,7 +380,7 @@ public class OpcUaAdapter
                     throw new InvalidOperationException($"Writefailed :  {res[0]}");
                 }
 
-                _logger.LogInformation("[OpcUaClientAdapter] OPC-UA에 데이터 WRITE 성공!");
+                _logger.LogDebug("[OpcUaClientAdapter] OPC-UA에 데이터 WRITE 성공!");
             }
         }
         catch (Exception ex)
@@ -377,7 +394,7 @@ public class OpcUaAdapter
                 StartReconnectTask(CancellationToken.None);
             }
 
-            throw;
+            //throw;
         }
     }
 

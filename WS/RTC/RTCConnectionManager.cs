@@ -47,7 +47,7 @@ public class RTCConnectionManager(ILogger<RTCConnectionManager> logger)
         
         _BroadCasters[roomId] = socket;
         
-        _logger.LogInformation($"[RTCConnectionManager] {roomId} 브로드캐스터 등록 완료");
+        _logger.LogDebug($"[RTCConnectionManager] {roomId} 브로드캐스터 등록 완료");
         await SendMessageAsync(socket, $"{roomId} - Broadcaster 등록되었습니다");
         
         await NotifyClientsAboutBroadcaster(roomId, "joined");
@@ -90,7 +90,7 @@ public class RTCConnectionManager(ILogger<RTCConnectionManager> logger)
     {
         _BroadCasters.TryRemove(roomId, out _);
                
-        _logger.LogInformation($"[RTCConnectionManager] {roomId} 브로드캐스터 연결 해제");
+        _logger.LogDebug($"[RTCConnectionManager] {roomId} 브로드캐스터 연결 해제");
         await SendMessageAsync(socket, $"{roomId} - Broadcaster 연결 해제되었습니다.");
     }
 
@@ -124,7 +124,7 @@ public class RTCConnectionManager(ILogger<RTCConnectionManager> logger)
         
         _Clients.TryAdd(clientId, client);
         
-        _logger.LogInformation($"[RTCConnectionManager] {clientId} 클라이언트 등록 완료");
+        _logger.LogDebug($"[RTCConnectionManager] {clientId} 클라이언트 등록 완료");
         return clientId;
     }
     

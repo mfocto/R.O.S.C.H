@@ -20,7 +20,7 @@ public class OfferHandler : IMessageHandler
     {
         var clientId = message.SenderId;
         var roomId = message.ReceiverId;
-        _logger.LogInformation($"[OfferHandler] {clientId} Offer");
+        _logger.LogDebug($"[OfferHandler] {clientId} Offer");
         try
         {
             if (string.IsNullOrWhiteSpace(roomId))

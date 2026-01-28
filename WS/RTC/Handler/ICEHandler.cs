@@ -21,7 +21,7 @@ public class ICEHandler : IMessageHandler
         string roomId = string.Empty;
         try
         {
-            _logger.LogInformation("[ICEHandler] sender: {message}, payload: {}", message.SenderId, message.Payload);
+            _logger.LogDebug("[ICEHandler] sender: {message}, payload: {}", message.SenderId, message.Payload);
             if (message.SenderType.Equals("Broadcaster"))
             {
                 // Broadcaster 면 receiverId 기준으로 Client 객체 찾아오기
