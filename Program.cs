@@ -31,6 +31,19 @@ foreach (var handlerType in handlerTypes)
 
 #endregion
 
+#region Repository 자동등록
+var repositories = Assembly.GetExecutingAssembly().GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract && t.Name.EndsWith("Repository"));
+
+foreach (var repo in repositories) {
+    var inf = repo.GetInterfaces().FirstOrDefault(i => i.Name == $"I{repo.Name}");
+
+    if (inf != null) {
+        builder.Services.AddScoped(inf, repo);
+    }
+}
+#endregion
+
 var app = builder.Build();
 app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromMinutes(1) });
 

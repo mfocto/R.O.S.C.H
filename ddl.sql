@@ -27,7 +27,8 @@ DROP TABLE IF EXISTS "device" cascade ;
 CREATE TABLE device (
                         device_id SERIAL PRIMARY KEY,
                         device_code VARCHAR(50) UNIQUE NOT NULL,  -- 'ESP32_01', 'STM32'
-                        device_type VARCHAR(50),  -- 'AGV', 'CONVEYOR', 'ROBOT', 'LIFT'
+                        device_type VARCHAR(50),                  -- 'AGV', 'CONVEYOR', 'ROBOT', 'LIFT'
+                        device_alias VARCHAR(50) NOT NULL ,       -- device 구분하기 위한 이름
                         created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -40,15 +41,23 @@ COMMENT ON TABLE device IS '디바이스 정보';
 -- ============================================
 DROP TABLE IF EXISTS "device_tag" cascade ;
 CREATE TABLE device_tag (
-                            device_id SERIAL PRIMARY KEY,
+                            tag_id SERIAL PRIMARY KEY,
+                            device_id INT REFERENCES device(device_id),
                             channel VARCHAR(50) NOT NULL,
                             device_name VARCHAR(50) NOT NULL,
                             tag VARCHAR(50) NOT NULL,
-                            access_type VARCHAR(50) NOT NULL
+                            access_type VARCHAR(50) NOT NULL CHECK (access_type IN ('Read', 'Write', 'ReadWrite')),
+                            data_type VARCHAR(20),         -- 'Int32', 'Float', 'Boolean', 'String' 등
+                            description TEXT,                           -- 태그 설명
+                            is_active BOOLEAN DEFAULT true,             -- 사용여부
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT uq_channel_device_tag UNIQUE (channel, device_name, tag)
 );
 
 CREATE INDEX idx_device_tag_channel ON device_tag(channel);
 CREATE INDEX idx_device_tag_channel_name ON device_tag(channel, device_name);
+CREATE INDEX idx_device_tag_active ON device_tag(channel, device_name, is_active);
 CREATE INDEX idx_device_tag_type ON device_tag(access_type);
 
 COMMENT ON TABLE device_tag IS 'OPC-UA태그';
@@ -133,7 +142,6 @@ CREATE TABLE control_log (
                              old_value TEXT,
                              new_value TEXT NOT NULL,
                              created_at TIMESTAMPTZ DEFAULT NOW(),
-                             executed_at TIMESTAMPTZ,
                              PRIMARY KEY (log_id, created_at)
 );
 
@@ -161,7 +169,7 @@ CREATE TABLE error_log (
 
 CREATE INDEX idx_error_source ON error_log(error_source, created_at DESC);
 CREATE INDEX idx_error_device ON error_log(device_id, created_at DESC);
-CREATE INDEX idx_error_code ON error_log(error_code);
+CREATE INDEX idx_error_code ON error_log(error_code, created_at DESC);
 
 COMMENT ON TABLE error_log IS '통합 오류 이력';
 COMMENT ON COLUMN error_log.error_code IS '오류 코드 (code.group_code)';
