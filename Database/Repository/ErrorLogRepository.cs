@@ -12,33 +12,28 @@ public class ErrorLogRepository: IErrorLogRepository
         _connectionString = configuration.GetConnectionString("DefaultConnection")
                             ?? throw new ArgumentNullException("ConnectionString");
     }
-    
-    private NpgsqlConnection GetConnection()
-    {
-        return new NpgsqlConnection(_connectionString);
-    } 
-    
-    public Task<IEnumerable<ErrorLog>> GetErrorLogsBySource(string errorSource, DateTimeOffset logTime)
+
+    public Task<IEnumerable<ErrorLog>> GetErrorLogsBySource(NpgsqlConnection conn, string errorSource, DateTimeOffset logTime)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<ErrorLog>> GetErrorLogsByDevice(int deviceId, DateTimeOffset logTime)
+    public Task<IEnumerable<ErrorLog>> GetErrorLogsByDevice(NpgsqlConnection conn, int deviceId, DateTimeOffset logTime)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<ErrorLog>> GetErrorLogsByCode(string errorCode, DateTimeOffset logTime)
+    public Task<IEnumerable<ErrorLog>> GetErrorLogsByCode(NpgsqlConnection conn, string errorCode, DateTimeOffset logTime)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> CreateErrorLog(ErrorLog errorLog)
+    public Task<int> CreateErrorLog(NpgsqlConnection conn, NpgsqlTransaction tx, ErrorLog errorLog)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> UpdateErrorLog(ErrorLog errorLog)
+    public Task<int> UpdateErrorLog(NpgsqlConnection conn, NpgsqlTransaction tx, ErrorLog errorLog)
     {
         throw new NotImplementedException();
     }

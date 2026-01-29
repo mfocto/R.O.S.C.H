@@ -13,28 +13,23 @@ public class OpcDataRepository: IOpcDataRepository
         _connectionString = configuration.GetConnectionString("DefaultConnection")
                             ?? throw new ArgumentNullException("ConnectionString");
     }
-    
-    private NpgsqlConnection GetConnection()
-    {
-        return new NpgsqlConnection(_connectionString);
-    } 
-    
-    public Task<IEnumerable<OpcData>> GetDataByDeviceId(int deviceId)
+
+    public Task<IEnumerable<OpcData>> GetDataByDeviceId(NpgsqlConnection conn, int deviceId)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<OpcData>> GetDataByDeviceTag(int deviceId, string tag)
+    public Task<IEnumerable<OpcData>> GetDataByDeviceTag(NpgsqlConnection conn, int deviceId, string tag)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<OpcData>> GetDataBySourceTime(DateTimeOffset time)
+    public Task<IEnumerable<OpcData>> GetDataBySourceTime(NpgsqlConnection conn, DateTimeOffset time)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> CreateOpcData(OpcData opcData)
+    public Task<int> CreateOpcData(NpgsqlConnection conn, NpgsqlTransaction tx, OpcData opcData)
     {
         throw new NotImplementedException();
     }

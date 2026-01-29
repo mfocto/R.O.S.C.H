@@ -13,18 +13,14 @@ public class CodeRepository : ICodeRepository
         _connectionString = configuration.GetConnectionString("DefaultConnection")
                             ?? throw new ArgumentNullException("ConnectionString");
     }
-    
-    private NpgsqlConnection GetConnection()
-    {
-        return new NpgsqlConnection(_connectionString);
-    } 
-    
-    public Task<IEnumerable<Code>> GetCodesByType(string type)
+
+
+    public Task<IEnumerable<Code>> GetCodesByType(NpgsqlConnection conn, string type)
     {
         throw new NotImplementedException();
     }
 
-    public Task<Code> GetCode(string code)
+    public Task<Code> GetCode(NpgsqlConnection conn, string code)
     {
         throw new NotImplementedException();
     }

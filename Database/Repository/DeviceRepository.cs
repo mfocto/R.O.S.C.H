@@ -13,43 +13,38 @@ public class DeviceRepository: IDeviceRepository
         _connectionString = configuration.GetConnectionString("DefaultConnection")
                             ?? throw new ArgumentNullException("ConnectionString");
     }
-    
-    private NpgsqlConnection GetConnection()
-    {
-        return new NpgsqlConnection(_connectionString);
-    } 
-    
-    public Task<Device> GetDevice(string alias)
+
+    public Task<Device> GetDevice(NpgsqlConnection conn, string alias)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<Device>> GetDevicesByDeviceCode(string deviceType, string deviceCode)
+    public Task<IEnumerable<Device>> GetDevicesByDeviceCode(NpgsqlConnection conn, string deviceType, string deviceCode)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<Device>> GetDevices()
+    public Task<IEnumerable<Device>> GetDevices(NpgsqlConnection conn)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<Device>> GetDevicesByDeviceType(string deviceType)
+    public Task<IEnumerable<Device>> GetDevicesByDeviceType(NpgsqlConnection conn, string deviceType)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> CreateDevice(Device device)
+    public Task<int> CreateDevice(NpgsqlConnection conn, NpgsqlTransaction tx, Device device)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> UpdateDevice(Device device)
+    public Task<int> UpdateDevice(NpgsqlConnection conn, NpgsqlTransaction tx, Device device)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> DeleteDevice(int deviceId)
+    public Task<int> DeleteDevice(NpgsqlConnection conn, NpgsqlTransaction tx, int deviceId)
     {
         throw new NotImplementedException();
     }

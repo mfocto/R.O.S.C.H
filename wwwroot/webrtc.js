@@ -78,8 +78,6 @@ function sendPing() {
 }
 
 function initWebRTC() {
-    console.log('Initializing WebRTC...');
-    
     // video 엘리먼트 찾기
     video = document.getElementById('video');
     if (!video) {
@@ -94,7 +92,6 @@ function initWebRTC() {
     socket = new WebSocket(`ws://localhost:5178/ws/rtc?type=Client&roomId=${roomId}`)
     
     socket.onopen = () => {
-        console.log('WebSocket connected');
         const joinMessage = new WebSocketMessage("Join", "", "", "Client", "")
         socket.send(JSON.stringify(joinMessage))
         
@@ -104,7 +101,6 @@ function initWebRTC() {
     }
     
     socket.onclose = () => {
-        console.log('WebSocket closed');
         if (pingInterval) {
             clearInterval(pingInterval)
             pingInterval = null
@@ -122,12 +118,6 @@ function initWebRTC() {
 async function handleSocketMessage(message) {
     const data = new WebSocketMessage();
     data.convert(message);
-    
-    // System 메시지는 콘솔로 출력
-    if (data.Type === "System") {
-        const received = JSON.parse(data.Payload)
-        console.log(`[SystemMessage] ${received.message || received.Message}`)
-    }
     
     // Pong 수신
     if (data.Type === 'Pong') {
@@ -147,7 +137,6 @@ async function handleSocketMessage(message) {
     
     if (data.Type === "Joined") {
         clientId = data.Payload
-        console.log('Client joined with ID:', clientId);
         await sendMessage("BroadcasterList", JSON.stringify({roomId: roomId}), roomId)
     }
     
@@ -162,21 +151,15 @@ async function handleSocketMessage(message) {
             await pc.setLocalDescription(offer)
 
             await sendMessage("Offer", JSON.stringify(offer), roomId)
-        } else {
-            console.log('No broadcasters available');
         }
     }
     
     if (data.Type === "answer") {
-        
         const answerSdp = data.Payload;
-        
-        console.log(`Answer: ${answerSdp}`);
         await pc.setRemoteDescription(JSON.parse(answerSdp));
     }
     
     if (data.Type === 'ice'){
-        console.log('ICE candidate received');
         await pc.addIceCandidate(JSON.parse(data.Payload))
     }
     
@@ -234,8 +217,6 @@ async function sendMessage (type, payload, receiverId) {
 
 // WebRTC 정리 함수
 function cleanupWebRTC() {
-    console.log('Cleaning up WebRTC...');
-    
     if (pingInterval) {
         clearInterval(pingInterval);
         pingInterval = null;

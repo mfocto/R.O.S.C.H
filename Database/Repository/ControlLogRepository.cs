@@ -13,28 +13,23 @@ public class ControlLogRepository: IControlLogRepository
         _connectionString = configuration.GetConnectionString("DefaultConnection")
                             ?? throw new ArgumentNullException("ConnectionString");
     }
-    
-    private NpgsqlConnection GetConnection()
-    {
-        return new NpgsqlConnection(_connectionString);
-    } 
-    
-    public Task<IEnumerable<ControlLog>> GetLogs(string idType, int Id, DateTimeOffset logTime)
+
+    public Task<IEnumerable<ControlLog>> GetLogs(NpgsqlConnection conn, string idType, int Id, DateTimeOffset logTime)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<ControlLog>> GetLogs(DateTimeOffset logTime)
+    public Task<IEnumerable<ControlLog>> GetLogs(NpgsqlConnection conn, DateTimeOffset logTime)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> CreateAsync(ControlLog controlLog)
+    public Task<int> CreateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> UpdateAsync(ControlLog controlLog)
+    public Task<int> UpdateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog)
     {
         throw new NotImplementedException();
     }

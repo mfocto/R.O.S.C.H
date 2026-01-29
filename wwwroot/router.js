@@ -1,4 +1,4 @@
-﻿// 라우터
+// 라우터
 const routes = {
     '': renderLogin,
     'login': renderLogin,
@@ -11,8 +11,21 @@ let currentUser = null;
 function restoreSession() {
     const savedRole = localStorage.getItem('userRole');
     const savedUsername = localStorage.getItem('username');
-    
+    const loginTime = localStorage.getItem('loginTime');
+
     if (savedRole && savedUsername) {
+        // USER의 경우 새로고침 시 1시간 체크
+        if (savedRole === 'USER' && loginTime) {
+            const elapsed = new Date() - new Date(loginTime);
+            const oneHour = 60 * 60 * 1000; // 1시간 (밀리초)
+
+            if (elapsed > oneHour) {
+                console.log('USER 세션 만료 (1시간 초과)');
+                localStorage.clear();
+                return false;
+            }
+        }
+
         currentUser = {
             role: savedRole,
             username: savedUsername
@@ -24,34 +37,27 @@ function restoreSession() {
 
 // 초기화
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('App initializing...');
-    
     // 세션 복원
     const hasSession = restoreSession();
     
     // 현재 Hash 확인
     const currentHash = window.location.hash.slice(1) || '';
     
-    console.log('Session:', hasSession, 'Current hash:', currentHash);
-    
     if (hasSession) {
         // 로그인되어 있는데 login 페이지나 빈 페이지에 있으면 올바른 페이지로 리다이렉트
         if (currentHash === '' || currentHash === 'login') {
             const targetPage = currentUser.role === 'ADMIN' ? 'admin' : 'user';
-            console.log('Redirecting to:', targetPage);
             navigate(targetPage);
             return;
         }
         // 권한 확인
         if (currentHash === 'admin' && currentUser.role !== 'ADMIN') {
-            console.log('No admin permission, redirecting to user');
             navigate('user');
             return;
         }
     } else {
         // 로그인되어 있지 않은데 로그인이 필요한 페이지에 있으면 로그인으로
         if (currentHash === 'admin' || currentHash === 'user') {
-            console.log('No session, redirecting to login');
             navigate('login');
             return;
         }
@@ -66,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function router() {
     const hash = window.location.hash.slice(1) || '';
-    console.log('Routing to:', hash);
     
     const renderFn = routes[hash] || renderLogin;
     
@@ -79,14 +84,11 @@ function router() {
 }
 
 function navigate(path) {
-    console.log('Navigate to:', path);
     window.location.hash = path;
 }
 
 // ===== 로그인 페이지 =====
 function renderLogin() {
-    console.log('Rendering login page');
-    
     if (currentUser) {
         const targetPage = currentUser.role === 'ADMIN' ? 'admin' : 'user';
         navigate(targetPage);
@@ -108,12 +110,6 @@ function renderLogin() {
                 </button>
                 
                 <p id="login-msg" style="color:var(--danger); font-size:11px; margin-top:15px; min-height:1em;"></p>
-                
-                <div style="margin-top:30px; padding-top:20px; border-top:1px solid #333;">
-                    <p style="font-size:10px; color:#666;">TEST ACCOUNTS</p>
-                    <p style="font-size:10px; color:#888;">admin / admin</p>
-                    <p style="font-size:10px; color:#888;">user / user</p>
-                </div>
             </div>
         </div>
     `;
@@ -141,27 +137,27 @@ async function handleLogin() {
     btn.disabled = true;
 
     try {
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        let role = null;
-        if (id === 'admin' && pw === 'admin') {
-            role = 'ADMIN';
-        } else if (id === 'user' && pw === 'user') {
-            role = 'USER';
-        } else {
-            throw new Error('아이디 또는 비밀번호가 일치하지 않습니다.');
-        }
+        // 서버 호출
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                Username: id,
+                Password: pw
+            })
+        });
+        const data = await response.json();
         
         // 세션 저장
-        currentUser = { role, username: id };
-        localStorage.setItem('userRole', role);
+        currentUser = { role: data.role, username: id };
+        localStorage.setItem('userRole', data.role);
         localStorage.setItem('username', id);
         localStorage.setItem('loginTime', new Date().toISOString());
         
-        console.log('Login success:', currentUser);
-        
         // Hash 라우팅으로 이동
-        navigate(role === 'ADMIN' ? 'admin' : 'user');
+        navigate(data.role === 'ADMIN' ? 'admin' : 'user');
 
     } catch (error) {
         msg.innerText = error.message;
@@ -172,16 +168,12 @@ async function handleLogin() {
 
 // ===== Admin 페이지 =====
 function renderAdmin() {
-    console.log('Rendering admin page, currentUser:', currentUser);
-    
     if (!currentUser) {
-        console.log('No current user, redirecting to login');
         navigate('login');
         return;
     }
     
     if (currentUser.role !== 'ADMIN') {
-        console.log('Not admin, redirecting to user');
         alert('관리자 권한이 필요합니다.');
         navigate('user');
         return;
@@ -198,7 +190,7 @@ function renderAdmin() {
                 </div>
             </header>
 
-            <main class="glass-panel neon-border-blue main-viewer" style="padding:0;">
+            <main class="glass-panel neon-border-blue main-viewer" style="padding:0; grid-row: 2 / 4;">
                 <div class="overlay-info">
                     MODE: <span class="text-green">AUTO</span><br>
                     PING: <span id="ping" class="text-blue">--</span>
@@ -211,14 +203,14 @@ function renderAdmin() {
             </main>
 
             <section class="glass-panel control-panel" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;">
-                <button class="btn-control" onclick="alert('MOVE TO A')">MOVE TO A</button>
-                <button class="btn-control btn-danger" onclick="alert('EMERGENCY_STOP')">EMERGENCY STOP</button>
-                <button class="btn-control" onclick="alert('RESCAN VISION')">RE-SCAN VISION</button>
+                <button class="btn-control" onclick="alert('MOVE TO A')">RUN</button>
+                <button class="btn-control" onclick="alert('EMERGENCY_STOP')">STOP</button>
+                <button class="btn-control btn-danger" onclick="alert('RESCAN VISION')">EMERGENCY STOP</button>
                 <button class="btn-control" onclick="alert('CALL ADMIN')">CALL ADMIN</button>
             </section>
 
             <aside class="glass-panel sidebar-right" style="display:flex; flex-direction:column; gap:12px; padding:12px;">
-    <!-- 카메라 선택 버튼 (컴팩트) -->
+    <!-- 카메라 선택 버튼 -->
     <div style="display:flex; flex-direction:column; flex-shrink:0;">
         <h3 style="margin:0 0 8px 0; font-size:13px;">Camera Select</h3>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-bottom:8px;">
@@ -246,7 +238,7 @@ function renderAdmin() {
 
     <hr style="border:0; border-top:1px solid #333; margin:0;">
 
-    <!-- 컨베이어 속도 제어 (확장) -->
+    <!-- 컨베이어 속도 제어 -->
     <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
         <h3 style="margin:0 0 10px 0; font-size:13px;">Conveyor Speed Control</h3>
         <div style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1;">
@@ -333,10 +325,7 @@ function renderAdmin() {
 
 // ===== User 페이지 =====
 function renderUser() {
-    console.log('Rendering user page, currentUser:', currentUser);
-    
     if (!currentUser) {
-        console.log('No current user, redirecting to login');
         navigate('login');
         return;
     }
@@ -352,7 +341,7 @@ function renderUser() {
                 </div>
             </header>
 
-            <main class="glass-panel neon-border-blue main-viewer" style="padding:0;">
+            <main class="glass-panel neon-border-blue main-viewer" style="padding:0; grid-row: 2 / 4;">
                 <div class="overlay-info">
                     MODE: <span class="text-green">AUTO</span><br>
                     PING: <span id="ping" class="text-blue">--</span>
@@ -365,12 +354,29 @@ function renderUser() {
             </main>
 
             <aside class="glass-panel sidebar-right" style="display:flex; flex-direction:column; gap:15px;">
-                <!-- 현재 카메라 -->
-                <div style="flex:1;">
-                    <h3 style="margin:0 0 10px 0;">Current Camera</h3>
-                    <div style="padding:10px; background:rgba(0,255,0,0.05); border:1px solid rgba(0,255,0,0.2); border-radius:4px;">
-                        <div class="text-green" style="font-size:14px; font-weight:bold;">Main Camera</div>
-                        <div style="font-size:10px; color:#666; margin-top:5px;">View Only Mode</div>
+                <!-- 카메라 선택 -->
+                <div style="display:flex; flex-direction:column; flex-shrink:0;">
+                    <h3 style="margin:0 0 8px 0; font-size:13px;">Camera Select</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-bottom:8px;">
+                        <button class="camera-btn active" data-camera="Main" onclick="selectCamera('Main')" 
+                                style="padding:10px 8px; font-size:10px; background:#1a1a1a; border:1.5px solid var(--neon-green); color:var(--neon-green); border-radius:6px; cursor:pointer; font-family:var(--font); transition:0.2s; font-weight:bold;">
+                            MAIN
+                        </button>
+                        <button class="camera-btn" data-camera="Camera1" onclick="selectCamera('Camera1')" 
+                                style="padding:10px 8px; font-size:10px; background:#1a1a1a; border:1.5px solid #333; color:#888; border-radius:6px; cursor:pointer; font-family:var(--font); transition:0.2s;">
+                            CAM 1
+                        </button>
+                        <button class="camera-btn" data-camera="Camera2" onclick="selectCamera('Camera2')" 
+                                style="padding:10px 8px; font-size:10px; background:#1a1a1a; border:1.5px solid #333; color:#888; border-radius:6px; cursor:pointer; font-family:var(--font); transition:0.2s;">
+                            CAM 2
+                        </button>
+                        <button class="camera-btn" data-camera="Camera3" onclick="selectCamera('Camera3')" 
+                                style="padding:10px 8px; font-size:10px; background:#1a1a1a; border:1.5px solid #333; color:#888; border-radius:6px; cursor:pointer; font-family:var(--font); transition:0.2s;">
+                            CAM 3
+                        </button>
+                    </div>
+                    <div style="font-size:10px; color:#666; padding:6px 8px; background:rgba(0,255,0,0.05); border:1px solid rgba(0,255,0,0.2); border-radius:4px; text-align:center;">
+                        <span id="current-camera" class="text-green" style="font-weight:bold;">Main</span>
                     </div>
                 </div>
 
@@ -410,17 +416,37 @@ function renderUser() {
     }
 }
 
-function logout() {
-    console.log('Logging out');
-    currentUser = null;
-    localStorage.clear();
-    
-    // WebRTC 정리
-    if (typeof cleanupWebRTC === 'function') {
-        cleanupWebRTC();
+async function logout() {
+    try {
+        // 백엔드 로그아웃 API 호출 (ADMIN IsActive 해제)
+        const username = localStorage.getItem('username');
+
+        if (username) {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username
+                })
+            });
+        }
+    } catch (error) {
+        console.error('로그아웃 API 호출 실패:', error);
+        // 에러가 발생해도 로컬 로그아웃은 진행
+    } finally {
+        // 로컬 세션 정리
+        currentUser = null;
+        localStorage.clear();
+
+        // WebRTC 정리
+        if (typeof cleanupWebRTC === 'function') {
+            cleanupWebRTC();
+        }
+
+        navigate('login');
     }
-    
-    navigate('login');
 }
 
 
@@ -429,8 +455,8 @@ function logout() {
  * */
 function checkTimeout () {
     const loginTime = localStorage.getItem('loginTime');
-    
-    if (loginTime) {
+    const userRole = localStorage.getItem('userRole');
+    if (loginTime && userRole === 'ADMIN') {
         if ((new Date() - new Date(loginTime)) > (10 * 60 * 1000)) {
             // 밀리초로 timeout 비교
             logout()
@@ -440,6 +466,5 @@ function checkTimeout () {
 
 
 setInterval(() => {
-    console.log('시간체크');
     checkTimeout();
 }, 10000)
