@@ -1,12 +1,14 @@
 using System.Reflection;
 using Npgsql;
 using R.O.S.C.H.adapter;
+using R.O.S.C.H.adapter.Interface;
 using R.O.S.C.H.API.Endpoints;
 using R.O.S.C.H.Database.Models;
 using R.O.S.C.H.Database.Repository;
 using R.O.S.C.H.Database.Repository.Interface;
 using R.O.S.C.H.Worker;
 using R.O.S.C.H.WS.Common;
+using R.O.S.C.H.WS.Opc;
 using R.O.S.C.H.WS.RTC;
 using R.O.S.C.H.WS.RTC.Handler;
 
@@ -19,7 +21,18 @@ builder.Services.AddControllers();
 
 
 builder.Services.AddSingleton<RTCConnectionManager>();
-builder.Services.AddSingleton<OpcUaAdapter>();
+
+// 테스트 데이터 사용여부
+if (builder.Configuration.GetValue<bool>("UseMockData"))
+{
+    builder.Services.AddSingleton<IOpcUaAdapter, MockOpcUaAdapter>();
+}
+else
+{
+    builder.Services.AddSingleton<IOpcUaAdapter, OpcUaAdapter>();
+}
+
+builder.Services.AddSingleton<OpcWebSocketManager>();
 builder.Services.AddHostedService<StatePollingWorker>();
 #region 메시지 핸들러 자동등록
 var handlerTypes = Assembly.GetExecutingAssembly()
@@ -128,7 +141,10 @@ app.UseStaticFiles();
 
 app.MapAuthEndpoints();
 
-
+app.Map("/ws/opc", appBuilder =>
+{
+    appBuilder.UseMiddleware<OPCSocketMiddleware>();
+});
 
 app.Map("/ws/rtc", appBuilder =>
 {

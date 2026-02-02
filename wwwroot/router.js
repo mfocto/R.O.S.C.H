@@ -239,77 +239,94 @@ function renderAdmin() {
     <hr style="border:0; border-top:1px solid #333; margin:0;">
 
     <!-- 컨베이어 속도 제어 -->
-    <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
-        <h3 style="margin:0 0 10px 0; font-size:13px;">Conveyor Speed Control</h3>
-        <div style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1;">
-            <!-- CV-1 -->
-            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                    <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 1</span>
-                    <span style="font-size:9px; color:#555;">m/s</span>
+        <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+            <h3 style="margin:0 0 10px 0; font-size:13px;">Conveyor Speed Control</h3>
+            <div style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1;">
+                
+                <!-- CV-1 (Load) -->
+                <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 1</span>
+                    </div>
+                    
+                    <!-- 현재 속도 표시 영역 (읽기 전용) -->
+                    <div style="background:rgba(0,0,0,0.5); padding:12px; border-radius:4px; margin-bottom:8px; text-align:center; border:1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size:9px; color:#666; margin-bottom:4px;">Current Speed</div>
+                        <div id="conv-1-display" style="font-size:24px; color:var(--neon-green); font-weight:bold; font-family:monospace;">
+                            0.0
+                        </div>
+                        <div style="font-size:9px; color:#666; margin-top:2px;">m/s</div>
+                    </div>
+                    
+                    <!-- 입력 영역 -->
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <input type="number" id="conv-1-input" class="input-dark" 
+                               style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
+                               placeholder="Set speed..." step="0.1" min="0" max="10">
+                        <button onclick="applyConveyorSpeed(1)" 
+                                style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
+                            SET
+                        </button>
+                    </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <input type="number" id="conv-1" class="input-dark" 
-                           style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
-                           placeholder="0.0" value="1.5" step="0.1" min="0" max="10">
-                    <button onclick="applyConveyorSpeed(1)" 
-                            style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
-                        SET
-                    </button>
+                
+                <!-- CV-2 (Main) -->
+                <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 2</span>
+                    </div>
+                    
+                    <!-- 현재 속도 표시 영역 (읽기 전용) -->
+                    <div style="background:rgba(0,0,0,0.5); padding:12px; border-radius:4px; margin-bottom:8px; text-align:center; border:1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size:9px; color:#666; margin-bottom:4px;">Current Speed</div>
+                        <div id="conv-2-display" style="font-size:24px; color:var(--neon-green); font-weight:bold; font-family:monospace;">
+                            0.0
+                        </div>
+                        <div style="font-size:9px; color:#666; margin-top:2px;">m/s</div>
+                    </div>
+                    
+                    <!-- 입력 영역 -->
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <input type="number" id="conv-2-input" class="input-dark" 
+                               style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
+                               placeholder="Set speed..." step="0.1" min="0" max="10">
+                        <button onclick="applyConveyorSpeed(2)" 
+                                style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
+                            SET
+                        </button>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- CV-2 -->
-            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                    <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 2</span>
-                    <span style="font-size:9px; color:#555;">m/s</span>
+                
+                <!-- CV-3 (Sort) -->
+                <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                        <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 3</span>
+                    </div>
+                    
+                    <!-- 현재 속도 표시 영역 (읽기 전용) -->
+                    <div style="background:rgba(0,0,0,0.5); padding:12px; border-radius:4px; margin-bottom:8px; text-align:center; border:1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size:9px; color:#666; margin-bottom:4px;">Current Speed</div>
+                        <div id="conv-3-display" style="font-size:24px; color:var(--neon-green); font-weight:bold; font-family:monospace;">
+                            0.0
+                        </div>
+                        <div style="font-size:9px; color:#666; margin-top:2px;">m/s</div>
+                    </div>
+                    
+                    <!-- 입력 영역 -->
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <input type="number" id="conv-3-input" class="input-dark" 
+                               style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
+                               placeholder="Set speed..." step="0.1" min="0" max="10">
+                        <button onclick="applyConveyorSpeed(3)" 
+                                style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
+                            SET
+                        </button>
+                    </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <input type="number" id="conv-2" class="input-dark" 
-                           style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
-                           placeholder="0.0" value="1.5" step="0.1" min="0" max="10">
-                    <button onclick="applyConveyorSpeed(2)" 
-                            style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
-                        SET
-                    </button>
-                </div>
-            </div>
-            
-            <!-- CV-3 -->
-            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                    <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 3</span>
-                    <span style="font-size:9px; color:#555;">m/s</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <input type="number" id="conv-3" class="input-dark" 
-                           style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
-                           placeholder="0.0" value="1.5" step="0.1" min="0" max="10">
-                    <button onclick="applyConveyorSpeed(3)" 
-                            style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
-                        SET
-                    </button>
-                </div>
-            </div>
-            
-            <!-- CV-4 -->
-            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                    <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 4</span>
-                    <span style="font-size:9px; color:#555;">m/s</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <input type="number" id="conv-4" class="input-dark" 
-                           style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
-                           placeholder="0.0" value="1.5" step="0.1" min="0" max="10">
-                    <button onclick="applyConveyorSpeed(4)" 
-                            style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
-                        SET
-                    </button>
-                </div>
+                
             </div>
         </div>
+        
     </div>
 </aside>
         </div>
@@ -320,6 +337,10 @@ function renderAdmin() {
     // WebRTC 초기화 (webrtc.js의 initWebRTC 함수 호출)
     if (typeof initWebRTC === 'function') {
         initWebRTC();
+    }
+    
+    if (typeof initOpcWebSocket === 'function') {
+        initOpcWebSocket();
     }
 }
 
@@ -387,23 +408,20 @@ function renderUser() {
                     <h3 style="margin:0 0 10px 0;">Conveyor Status</h3>
                     <div style="display:flex; flex-direction:column; gap:8px; font-size:11px;">
                         <div style="display:flex; justify-content:space-between; padding:6px; background:rgba(0,0,0,0.2); border-radius:3px;">
-                            <span style="color:#666;">CV-1:</span>
-                            <span class="text-green">1.5 m/s</span>
+                            <span style="color:#666;">CV-LOAD:</span>
+                            <span id="user-conv-1" class="text-green">-- m/s</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; padding:6px; background:rgba(0,0,0,0.2); border-radius:3px;">
-                            <span style="color:#666;">CV-2:</span>
-                            <span class="text-green">1.5 m/s</span>
+                            <span style="color:#666;">CV-MAIN:</span>
+                            <span id="user-conv-2" class="text-green">-- m/s</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; padding:6px; background:rgba(0,0,0,0.2); border-radius:3px;">
-                            <span style="color:#666;">CV-3:</span>
-                            <span class="text-green">1.5 m/s</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; padding:6px; background:rgba(0,0,0,0.2); border-radius:3px;">
-                            <span style="color:#666;">CV-4:</span>
-                            <span class="text-green">1.5 m/s</span>
+                            <span style="color:#666;">CV-SORT:</span>
+                            <span id="user-conv-3" class="text-green">-- m/s</span>
                         </div>
                     </div>
                 </div>
+
             </aside>
         </div>
     `;
@@ -413,6 +431,10 @@ function renderUser() {
     // WebRTC 초기화
     if (typeof initWebRTC === 'function') {
         initWebRTC();
+    }
+
+    if (typeof initOpcWebSocket === 'function') {
+        initOpcWebSocket();
     }
 }
 
@@ -443,6 +465,9 @@ async function logout() {
         // WebRTC 정리
         if (typeof cleanupWebRTC === 'function') {
             cleanupWebRTC();
+        }
+        if (typeof cleanupOpcWebSocket === 'function') {
+            cleanupOpcWebSocket();
         }
 
         navigate('login');

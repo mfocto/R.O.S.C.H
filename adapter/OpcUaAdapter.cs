@@ -3,10 +3,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Opc.Ua;
 using Opc.Ua.Client;
+using R.O.S.C.H.adapter.Interface;
 
 namespace R.O.S.C.H.adapter;
 
-public class OpcUaAdapter
+public class OpcUaAdapter : IOpcUaAdapter
 {
     private ILogger<OpcUaAdapter> _logger;
     private readonly IConfiguration _config;

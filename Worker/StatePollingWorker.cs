@@ -1,6 +1,8 @@
 ﻿
 
 using R.O.S.C.H.adapter;
+using R.O.S.C.H.adapter.Interface;
+using R.O.S.C.H.WS.Opc;
 
 namespace R.O.S.C.H.Worker;
 
@@ -8,17 +10,20 @@ public class StatePollingWorker: BackgroundService
 {
     private IConfiguration _config;
     private ILogger<StatePollingWorker> _logger;
-    private OpcUaAdapter _opc;
+    private IOpcUaAdapter _opc;
+    private readonly OpcWebSocketManager _manager;
 
     public StatePollingWorker(
         IConfiguration config,
         ILogger<StatePollingWorker> logger,
-        OpcUaAdapter opc
+        IOpcUaAdapter opc,
+        OpcWebSocketManager manager
         )
     {
         _config = config;
         _logger = logger;
         _opc = opc;
+        _manager = manager;
     }
     
     
@@ -30,7 +35,6 @@ public class StatePollingWorker: BackgroundService
             {
                 // 데이터 수집
                 IDictionary<string, object> opcExt = await _opc.ReadStateAsync(ct);
-                
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {   
                     // 로그 레벨이 Debug 면 값 확인
@@ -41,7 +45,7 @@ public class StatePollingWorker: BackgroundService
                 }
                 
                 // 수집한 데이터 unity로 전송
-
+                await _manager.SendDataAsync(opcExt);
             }
             catch (Exception ex)
             {
@@ -51,7 +55,7 @@ public class StatePollingWorker: BackgroundService
             
             
             
-            await Task.Delay(5000, ct);
+            await Task.Delay(1000, ct);
         }
     }
 }

@@ -209,6 +209,51 @@ async function createPeerConnection(){
     }
 }
 
+function selectCamera(cameraName) {
+    console.log('[WebRTC] 카메라 선택:', cameraName);
+
+    // UI 업데이트
+    document.querySelectorAll('.camera-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderColor = '#333';
+        btn.style.color = '#888';
+    });
+
+    const selectedBtn = document.querySelector(`.camera-btn[data-camera="${cameraName}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+        selectedBtn.style.borderColor = 'var(--neon-green)';
+        selectedBtn.style.color = 'var(--neon-green)';
+    }
+
+    const currentCameraSpan = document.getElementById('current-camera');
+    if (currentCameraSpan) {
+        currentCameraSpan.textContent = cameraName;
+    }
+
+    camera = cameraName;
+
+    sendCameraChangeMessage(cameraName);
+}
+
+function sendCameraChangeMessage(cameraName) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        console.error('[WebRTC] WebSocket이 연결되지 않았습니다.');
+        return;
+    }
+
+    const message = new WebSocketMessage(
+        "cameraChange",      // Type
+        cameraName,          // Payload: 카메라 이름
+        clientId,            // SenderId
+        "Client",            // SenderType
+        roomId               // ReceiverId
+    );
+
+    socket.send(JSON.stringify(message));
+    console.log('[WebRTC] 카메라 변경 요청 전송:', cameraName);
+}
+
 async function sendMessage (type, payload, receiverId) {
     const webSocketMessage = new WebSocketMessage(type, payload, clientId, "Client", receiverId)
     
@@ -236,3 +281,7 @@ function cleanupWebRTC() {
         video.srcObject = null;
     }
 }
+
+
+
+window.selectCamera = selectCamera;
