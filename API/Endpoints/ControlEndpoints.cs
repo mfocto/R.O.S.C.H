@@ -41,22 +41,46 @@ public static class ControlEndpoints
                 return Results.Problem(detail:e.Message, statusCode:500);
             }
         });
-        
+
         group.MapPost("process", async (
-            [FromBody]ControlRequest request,
+            [FromBody] ControlRequest request,
             [FromServices] OpcUaAdapter opcUaAdapter,
             [FromServices] ILogger<Program> logger
-            ) =>
+        ) =>
         {
             try
             {
+                // 제어 명령은 두군데 다 보내야 함(stm, agv)
+                await opcUaAdapter.WriteStateAsync(
+                    CancellationToken.None,
+                    "ModbusTCP",
+                    "ESP32_01",
+                    "Control",
+                    request.Value);
+
+                long state = request.Value switch
+                {
+                    "RUN" => 2,
+                    "STOP" => 3,
+                    "EMERGENCY STOP" => 5,
+                    "CALL ADMIN" => 999,
+                    _ => throw new ArgumentException()
+                };
+
+                await opcUaAdapter.WriteStateAsync(
+                    CancellationToken.None,
+                    "STM",
+                    "Stm_yolo",
+                    "TargetState",
+                    state);
                 
+                return Results.Ok(new { success = true });
             }
             catch (Exception e)
             {
                 logger.LogError("제어 명령 전송 중 오류" + e.Message);
-                return Results.Problem(detail:e.Message, statusCode:500);
+                return Results.Problem(detail: e.Message, statusCode: 500);
             }
-        })
+        });
     }
 }

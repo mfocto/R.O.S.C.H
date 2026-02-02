@@ -1,4 +1,4 @@
-// 라우터
+﻿// 라우터
 const routes = {
     '': renderLogin,
     'login': renderLogin,
@@ -246,13 +246,13 @@ function renderAdmin() {
                 <!-- CV-1 (Load) -->
                 <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                        <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 1</span>
+                        <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR Load</span>
                     </div>
                     
                     <!-- 현재 속도 표시 영역 (읽기 전용) -->
                     <div style="background:rgba(0,0,0,0.5); padding:12px; border-radius:4px; margin-bottom:8px; text-align:center; border:1px solid rgba(255,255,255,0.1);">
                         <div style="font-size:9px; color:#666; margin-bottom:4px;">Current Speed</div>
-                        <div id="conv-1-display" style="font-size:24px; color:var(--neon-green); font-weight:bold; font-family:monospace;">
+                        <div id="conv-load-display" style="font-size:24px; color:var(--neon-green); font-weight:bold; font-family:monospace;">
                             0.0
                         </div>
                         <div style="font-size:9px; color:#666; margin-top:2px;">m/s</div>
@@ -260,10 +260,10 @@ function renderAdmin() {
                     
                     <!-- 입력 영역 -->
                     <div style="display:flex; align-items:center; gap:6px;">
-                        <input type="number" id="conv-1-input" class="input-dark" 
+                        <input type="number" id="conv-load-input" class="input-dark" 
                                style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
                                placeholder="Set speed..." step="0.1" min="0" max="10">
-                        <button onclick="applyConveyorSpeed(1)" 
+                        <button onclick="applyConveyorSpeed('load')" 
                                 style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
                             SET
                         </button>
@@ -273,13 +273,13 @@ function renderAdmin() {
                 <!-- CV-2 (Main) -->
                 <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                        <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 2</span>
+                        <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR Main</span>
                     </div>
                     
                     <!-- 현재 속도 표시 영역 (읽기 전용) -->
                     <div style="background:rgba(0,0,0,0.5); padding:12px; border-radius:4px; margin-bottom:8px; text-align:center; border:1px solid rgba(255,255,255,0.1);">
                         <div style="font-size:9px; color:#666; margin-bottom:4px;">Current Speed</div>
-                        <div id="conv-2-display" style="font-size:24px; color:var(--neon-green); font-weight:bold; font-family:monospace;">
+                        <div id="conv-main-display" style="font-size:24px; color:var(--neon-green); font-weight:bold; font-family:monospace;">
                             0.0
                         </div>
                         <div style="font-size:9px; color:#666; margin-top:2px;">m/s</div>
@@ -287,10 +287,10 @@ function renderAdmin() {
                     
                     <!-- 입력 영역 -->
                     <div style="display:flex; align-items:center; gap:6px;">
-                        <input type="number" id="conv-2-input" class="input-dark" 
+                        <input type="number" id="conv-main-input" class="input-dark" 
                                style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
                                placeholder="Set speed..." step="0.1" min="0" max="10">
-                        <button onclick="applyConveyorSpeed(2)" 
+                        <button onclick="applyConveyorSpeed('main')" 
                                 style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
                             SET
                         </button>
@@ -300,13 +300,13 @@ function renderAdmin() {
                 <!-- CV-3 (Sort) -->
                 <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                        <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR 3</span>
+                        <span style="font-size:11px; color:#888; font-weight:bold;">CONVEYOR Sort</span>
                     </div>
                     
                     <!-- 현재 속도 표시 영역 (읽기 전용) -->
                     <div style="background:rgba(0,0,0,0.5); padding:12px; border-radius:4px; margin-bottom:8px; text-align:center; border:1px solid rgba(255,255,255,0.1);">
                         <div style="font-size:9px; color:#666; margin-bottom:4px;">Current Speed</div>
-                        <div id="conv-3-display" style="font-size:24px; color:var(--neon-green); font-weight:bold; font-family:monospace;">
+                        <div id="conv-sort-display" style="font-size:24px; color:var(--neon-green); font-weight:bold; font-family:monospace;">
                             0.0
                         </div>
                         <div style="font-size:9px; color:#666; margin-top:2px;">m/s</div>
@@ -314,10 +314,10 @@ function renderAdmin() {
                     
                     <!-- 입력 영역 -->
                     <div style="display:flex; align-items:center; gap:6px;">
-                        <input type="number" id="conv-3-input" class="input-dark" 
+                        <input type="number" id="conv-sort-input" class="input-dark" 
                                style="flex:1; padding:6px 8px; font-size:11px; margin:0; text-align:center; font-weight:bold;" 
                                placeholder="Set speed..." step="0.1" min="0" max="10">
-                        <button onclick="applyConveyorSpeed(3)" 
+                        <button onclick="applyConveyorSpeed('sort')" 
                                 style="padding:6px 12px; font-size:9px; background:#1a1a1a; border:1.5px solid var(--neon-blue); color:var(--neon-blue); border-radius:4px; cursor:pointer; font-family:var(--font); white-space:nowrap; font-weight:bold; transition:0.2s;">
                             SET
                         </button>
@@ -409,15 +409,15 @@ function renderUser() {
                     <div style="display:flex; flex-direction:column; gap:8px; font-size:11px;">
                         <div style="display:flex; justify-content:space-between; padding:6px; background:rgba(0,0,0,0.2); border-radius:3px;">
                             <span style="color:#666;">CV-LOAD:</span>
-                            <span id="user-conv-1" class="text-green">-- m/s</span>
+                            <span id="user-conv-load" class="text-green">-- m/s</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; padding:6px; background:rgba(0,0,0,0.2); border-radius:3px;">
                             <span style="color:#666;">CV-MAIN:</span>
-                            <span id="user-conv-2" class="text-green">-- m/s</span>
+                            <span id="user-conv-main" class="text-green">-- m/s</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; padding:6px; background:rgba(0,0,0,0.2); border-radius:3px;">
                             <span style="color:#666;">CV-SORT:</span>
-                            <span id="user-conv-3" class="text-green">-- m/s</span>
+                            <span id="user-conv-sort" class="text-green">-- m/s</span>
                         </div>
                     </div>
                 </div>
@@ -476,6 +476,47 @@ async function logout() {
 
 
 /**
+ * 컨베이어 속도 전송
+ * */
+async function applyConveyorSpeed (conveyorId) {
+    const speedInput = document.getElementById(`conv-${conveyorId}-input`);
+    
+    if (!speedInput) {
+        console.error(`input not found for ${conveyorId}`);
+        return
+    }
+    
+    const speed = speedInput.value;
+    
+    if (!speed || isNaN(parseFloat(speed))) {
+        alert('올바른 속도 값을 입력하세요')
+        return
+    }
+    
+    try {
+        const response = await fetch ('api/control/conveyor', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: conveyorId,
+                value: parseFloat(speed),
+            })
+        })   
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            speedInput.style.borderColor = 'var(--neon-green)';
+            setTimeout(() => speedInput.style.borderColor = '', 1000)
+        }
+    } catch (error) {
+        console.error('컨베이어 속도 전송 중 error : ' + error.message)
+    }
+}
+
+/**
  * 시간 체크해서 로그인한지 10분 넘었으면 자동 로그아웃 처리
  * */
 function checkTimeout () {
@@ -493,3 +534,5 @@ function checkTimeout () {
 setInterval(() => {
     checkTimeout();
 }, 10000)
+
+window.applyConveyorSpeed = applyConveyorSpeed;

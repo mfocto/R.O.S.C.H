@@ -140,6 +140,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.MapAuthEndpoints();
+app.MapControlEndpoints();
 
 app.Map("/ws/opc", appBuilder =>
 {

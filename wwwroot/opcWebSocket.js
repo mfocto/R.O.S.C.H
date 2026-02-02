@@ -82,9 +82,9 @@ function updateConveyor(data) {
 // User 페이지의 컨베이어 상태 업데이트 (ID 기반)
 function updateUserConveyorDisplay(conveyorData) {
     const mapping = {
-        'user-conv-1': conveyorData.load,
-        'user-conv-2': conveyorData.main,
-        'user-conv-3': conveyorData.sort
+        'user-conv-load': conveyorData.load,
+        'user-conv-main': conveyorData.main,
+        'user-conv-sort': conveyorData.sort
     };
 
     for (const [id, value] of Object.entries(mapping)) {
@@ -106,9 +106,9 @@ function updateUserConveyorDisplay(conveyorData) {
 // Admin 페이지의 컨베이어 입력 필드 업데이트
 function updateAdminConveyorDisplay(conveyorData) {
     const mapping = {
-        'conv-1-display': conveyorData.load,
-        'conv-2-display': conveyorData.main,
-        'conv-3-display': conveyorData.sort
+        'conv-load-display': conveyorData.load,
+        'conv-main-display': conveyorData.main,
+        'conv-sort-display': conveyorData.sort
         // conv-4는 OPC 데이터가 없으면 제외
     };
 
