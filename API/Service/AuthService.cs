@@ -111,7 +111,6 @@ public class AuthService(
             
             var user = await _userRepository.GetUserByUserNameAsync(conn, request.Username);
 
-            _logger.LogInformation("role이 이상한가? " + user.Role);
             if (user.Role.Equals("ADMIN"))
             {
                 // admin 이면 사용중 여부 false로 변경

@@ -26,15 +26,22 @@ COMMENT ON COLUMN "user".role IS 'ADMIN: 관리자, USER: 일반 사용자';
 DROP TABLE IF EXISTS "device" cascade ;
 CREATE TABLE device (
                         device_id SERIAL PRIMARY KEY,
-                        device_code VARCHAR(50) UNIQUE NOT NULL,  -- 'ESP32_01', 'STM32'
+                        device_code VARCHAR(50) NOT NULL,  -- 'ESP32_01', 'STM32'
                         device_type VARCHAR(50),                  -- 'AGV', 'CONVEYOR', 'ROBOT', 'LIFT'
-                        device_alias VARCHAR(50) NOT NULL ,       -- device 구분하기 위한 이름
+                        device_alias VARCHAR(50) UNIQUE NOT NULL ,       -- device 구분하기 위한 이름
                         created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_device_code ON device(device_code);
 
 COMMENT ON TABLE device IS '디바이스 정보';
+
+INSERT INTO device (device_code, device_type, device_alias) values ('ESP32_01', 'AGV', 'AGV');
+INSERT INTO device (device_code, device_type, device_alias) values ('STM32', 'CONVEYOR', 'LOAD');
+INSERT INTO device (device_code, device_type, device_alias) values ('STM32', 'CONVEYOR', 'MAIN');
+INSERT INTO device (device_code, device_type, device_alias) values ('STM32', 'CONVEYOR', 'SORT');
+INSERT INTO device (device_code, device_type, device_alias) values ('STM32', 'ROBOT', 'ROBOT');
+INSERT INTO device (device_code, device_type, device_alias) values ('STM32', 'LIFT', 'LIFT');
 
 -- ============================================
 -- 2. 태그 정보
@@ -96,8 +103,11 @@ INSERT INTO code (type, code, code_name, description) VALUES
 -- 제어 명령 타입
 ('CONTROL_CMD', 'C001', '속도 제어', '컨베이어 속도 변경'),
 ('CONTROL_CMD', 'C002', '상태 제어', '디바이스 상태 변경'),
-('CONTROL_CMD', 'C003', '이동 제어', 'AGV 이동 명령'),
-('CONTROL_CMD', 'C004', '긴급 정지', '긴급 정지');
+
+-- 제어 상세 명령(C002)의 상세명령
+('CONTROL_DTL', 'CD001', '동작', '동작'),
+('CONTROL_DTL', 'CD002', '정지', '정지'),
+('CONTROL_DTL', 'CD003', '긴급 정지', '긴급 정지');
 
 -- ============================================
 -- 5. OPC 실시간 데이터 (시계열 데이터)

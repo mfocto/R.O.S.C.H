@@ -1,4 +1,5 @@
-﻿using Npgsql;
+﻿using Dapper;
+using Npgsql;
 using R.O.S.C.H.Database.Models;
 using R.O.S.C.H.Database.Repository.Interface;
 
@@ -14,22 +15,44 @@ public class ControlLogRepository: IControlLogRepository
                             ?? throw new ArgumentNullException("ConnectionString");
     }
 
-    public Task<IEnumerable<ControlLog>> GetLogs(NpgsqlConnection conn, string idType, int Id, DateTimeOffset logTime)
+    public async Task<IEnumerable<ControlLog>> GetLogs(NpgsqlConnection conn, string idType, int Id, DateTimeOffset logTime)
+    {
+        string columnName = idType.ToLower() switch
+        {
+            "user" => "user_id",
+            "device" => "device_id",
+            _ => throw new ArgumentException($"Invalid idType: {idType}")
+        };
+        
+        string sql = $"""
+                     SELECT log_id as LogId,
+                            user_id as UserId,
+                            device_id as DeviceId,
+                            control_type as ControlType,
+                            tag_name as TagName,
+                            old_value as OldValue,
+                            new_value as NewValue,
+                            created_at as CreatedAt
+                     FROM   "control_log"
+                     WHERE  {columnName} = @Id
+                     AND    created_at >= @LogTime
+                     ORDER BY created_at DESC
+                     """;
+        
+        return await conn.QueryAsync<ControlLog>(sql, new{ Id = Id, LogTime = logTime });
+    }
+
+    public async Task<IEnumerable<ControlLog>> GetLogs(NpgsqlConnection conn, DateTimeOffset logTime)
     {
         throw new NotImplementedException();
     }
 
-    public Task<IEnumerable<ControlLog>> GetLogs(NpgsqlConnection conn, DateTimeOffset logTime)
+    public async Task<int> CreateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog)
     {
         throw new NotImplementedException();
     }
 
-    public Task<int> CreateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<int> UpdateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog)
+    public async Task<int> UpdateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog)
     {
         throw new NotImplementedException();
     }

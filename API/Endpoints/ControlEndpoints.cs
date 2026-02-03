@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using R.O.S.C.H.adapter;
 using R.O.S.C.H.API.DTO;
+using R.O.S.C.H.API.Service.Interface;
+using R.O.S.C.H.Database.Models;
+using R.O.S.C.H.Database.Repository.Interface;
 
 namespace R.O.S.C.H.API.Endpoints;
 
@@ -13,19 +16,30 @@ public static class ControlEndpoints
         group.MapPost("conveyor", async (
             [FromBody] ControlRequest request,
             [FromServices] OpcUaAdapter opcUaAdapter,
+            [FromServices] IControlService controlService,
             [FromServices] ILogger<Program> logger
             ) =>
         {
             try
             {
-                string tag = request.Name switch
+                string tag = string.Empty;
+                string alias = string.Empty;
+                switch (request.Name)
                 {
-                    "load" => "TargetSpeedLoad",
-                    "main" => "TargetSpeedMain",
-                    "sort" => "TargetSpeedSort",
-                    _ => throw new ArgumentException("잘못된 컨베이어 ID")
-                };
-
+                    case "load" :
+                        tag = "TargetSpeedLoad";
+                        alias = "LOAD";
+                        break;
+                    case "main" : 
+                        tag = "TargetSpeedMain";
+                        alias = "MAIN";
+                        break;
+                    case "sort" : 
+                        tag = "TargetSpeedSort";
+                        alias = "SORT";
+                        break;
+                }
+                
                 await opcUaAdapter.WriteStateAsync(
                     CancellationToken.None,
                     "STM",
@@ -33,6 +47,8 @@ public static class ControlEndpoints
                     tag,
                     request.Value);
 
+                await controlService.ControlLogProcess(request, alias);
+                
                 return Results.Ok(new { success = true });
             }
             catch (Exception e)
@@ -45,6 +61,7 @@ public static class ControlEndpoints
         group.MapPost("process", async (
             [FromBody] ControlRequest request,
             [FromServices] OpcUaAdapter opcUaAdapter,
+            [FromServices] IControlService controlService,
             [FromServices] ILogger<Program> logger
         ) =>
         {
@@ -60,9 +77,9 @@ public static class ControlEndpoints
 
                 long state = request.Value switch
                 {
-                    "RUN" => 2,
-                    "STOP" => 3,
-                    "EMERGENCY STOP" => 5,
+                    "RUN" => 0,
+                    "STOP" => 1,
+                    "EMERGENCY STOP" => 2,
                     "CALL ADMIN" => 999,
                     _ => throw new ArgumentException()
                 };
@@ -73,6 +90,8 @@ public static class ControlEndpoints
                     "Stm_yolo",
                     "TargetState",
                     state);
+                
+                await controlService.ControlLogProcess(request);
                 
                 return Results.Ok(new { success = true });
             }
