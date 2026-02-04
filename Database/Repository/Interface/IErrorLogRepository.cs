@@ -10,5 +10,4 @@ public interface IErrorLogRepository
     Task<IEnumerable<ErrorLog>> GetErrorLogsByCode(NpgsqlConnection conn, string errorCode, DateTimeOffset logTime);
     
     Task<int> CreateErrorLog(NpgsqlConnection conn, NpgsqlTransaction tx, ErrorLog errorLog);
-    Task<int> UpdateErrorLog(NpgsqlConnection conn, NpgsqlTransaction tx, ErrorLog errorLog);
 }

@@ -45,8 +45,8 @@ public class OpcWebSocketManager
     public async Task SendDataAsync(IDictionary<string, object> sendData)
     {
         JObject obj = JObject.FromObject(sendData);
-        
         // client에는 컨베이어 속도만 전송
+        
         JObject sendToClient = new JObject();
         sendToClient.Add("conv_load", obj["stm_stm_yolo_currentspeedload"].ToString());
         sendToClient.Add("conv_main", obj["stm_stm_yolo_currentspeedmain"].ToString());

@@ -203,10 +203,10 @@ function renderAdmin() {
             </main>
 
             <section class="glass-panel control-panel" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;">
-                <button class="btn-control" onclick="alert('MOVE TO A')">RUN</button>
-                <button class="btn-control" onclick="alert('EMERGENCY_STOP')">STOP</button>
-                <button class="btn-control btn-danger" onclick="alert('RESCAN VISION')">EMERGENCY STOP</button>
-                <button class="btn-control" onclick="alert('CALL ADMIN')">CALL ADMIN</button>
+                <button class="btn-control" onclick="sendControlMessage('RUN')">RUN</button>
+                <button class="btn-control" onclick="sendControlMessage('STOP')">STOP</button>
+                <button class="btn-control btn-danger" onclick="sendControlMessage('EMERGENCY STOP')">EMERGENCY STOP</button>
+                <button class="btn-control" onclick="sendControlMessage('CALL ADMIN')">CALL ADMIN</button>
             </section>
 
             <aside class="glass-panel sidebar-right" style="display:flex; flex-direction:column; gap:12px; padding:12px;">
@@ -513,6 +513,24 @@ async function applyConveyorSpeed (conveyorId) {
         }
     } catch (error) {
         console.error('컨베이어 속도 전송 중 error : ' + error.message)
+    }
+}
+
+async function sendControlMessage(message) {
+    try {
+        const response = await fetch ('api/control/process', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: 'controlMessage',
+                value: message,
+            })
+        })
+
+    } catch (e) {
+        console.error('컨트롤 명령 전송 중 에러', e)
     }
 }
 

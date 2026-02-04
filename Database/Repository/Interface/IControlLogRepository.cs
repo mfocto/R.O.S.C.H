@@ -9,5 +9,4 @@ public interface IControlLogRepository
     Task<IEnumerable<ControlLog>> GetLogs(NpgsqlConnection conn, DateTimeOffset logTime);
     
     Task<int> CreateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog);
-    Task<int> UpdateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog);
 }

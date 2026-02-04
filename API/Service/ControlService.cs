@@ -48,37 +48,34 @@ public class ControlService: IControlService
             
             var user = await _userRepository.GetUserByUserNameAsync(conn, request.UserName);
 
-            if (user != null)
+            ControlLog controlLog;
+            if (device != null)
             {
-                ControlLog controlLog;
-                if (device != null)
+                controlLog = new ControlLog
                 {
-                    controlLog = new ControlLog
-                    {
-                        UserId = user.UserId,
-                        DeviceId = device.DeviceId,
-                        NewValue = Convert.ToString(request.Value)!,
-                        TagName = "Stm_yolo.TargetState",
-                        ControlType = Convert.ToString(request.Value)!.ToUpper()
-                    };
-                }
-                else
-                {
-                    controlLog = new ControlLog
-                    {
-                        UserId = user.UserId,
-                        DeviceId = 0,
-                        NewValue = Convert.ToString(request.Value)!,
-                        TagName = "Process",
-                        ControlType = Convert.ToString(request.Value)!.ToUpper()
-                    };
-                }
-
-                
-
-                using var tx = await conn.BeginTransactionAsync();
-                await _controlLogRepository.CreateAsync(conn, tx, controlLog);
+                    UserId = user.UserId,
+                    DeviceId = device.DeviceId,
+                    NewValue = Convert.ToString(request.Value)!,
+                    TagName = "Stm_yolo.TargetState",
+                    ControlType = Convert.ToString(request.Value)!.ToUpper()
+                };
             }
+            else
+            {
+                controlLog = new ControlLog
+                {
+                    UserId = user.UserId,
+                    DeviceId = 0,
+                    NewValue = Convert.ToString(request.Value)!,
+                    TagName = "Process",
+                    ControlType = Convert.ToString(request.Value)!.ToUpper()
+                };
+            }
+
+            using var tx = await conn.BeginTransactionAsync();
+            await _controlLogRepository.CreateAsync(conn, tx, controlLog);
+            await tx.CommitAsync();
+            
         }
         catch (Exception ex)
         {

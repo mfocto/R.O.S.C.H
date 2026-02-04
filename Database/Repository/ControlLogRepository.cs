@@ -44,16 +44,30 @@ public class ControlLogRepository: IControlLogRepository
 
     public async Task<IEnumerable<ControlLog>> GetLogs(NpgsqlConnection conn, DateTimeOffset logTime)
     {
-        throw new NotImplementedException();
+        string sql = """
+                     SELECT log_id as LogId,
+                            user_id as UserId,
+                            device_id as DeviceId,
+                            control_type as ControlType,
+                            tag_name as TagName,
+                            old_value as OldValue,
+                            new_value as NewValue,
+                            created_at as CreatedAt
+                     FROM    "control_log"
+                     WHERE  created_at >= @LogTime
+                     """;
+        
+        return await conn.QueryAsync<ControlLog>(sql, new { LogTime = logTime });
     }
 
     public async Task<int> CreateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog)
     {
-        throw new NotImplementedException();
+        string sql = """
+                     INSERT INTO "control_log" (user_id, device_id, control_type, tag_name, new_value) 
+                     VALUES (@UserId, @DeviceId, @ControlType, @TagName, @NewValue)
+                     """;
+        
+        return await conn.ExecuteAsync(sql, controlLog);
     }
-
-    public async Task<int> UpdateAsync(NpgsqlConnection conn, NpgsqlTransaction tx, ControlLog controlLog)
-    {
-        throw new NotImplementedException();
-    }
+    
 }

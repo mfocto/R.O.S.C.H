@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using R.O.S.C.H.adapter;
+using R.O.S.C.H.adapter.Interface;
 using R.O.S.C.H.API.DTO;
 using R.O.S.C.H.API.Service.Interface;
 using R.O.S.C.H.Database.Models;
@@ -15,7 +16,7 @@ public static class ControlEndpoints
 
         group.MapPost("conveyor", async (
             [FromBody] ControlRequest request,
-            [FromServices] OpcUaAdapter opcUaAdapter,
+            [FromServices] IOpcUaAdapter opcUaAdapter,
             [FromServices] IControlService controlService,
             [FromServices] ILogger<Program> logger
             ) =>
@@ -40,12 +41,29 @@ public static class ControlEndpoints
                         break;
                 }
                 
+                object value = request.Value;
+                if (value is System.Text.Json.JsonElement jsonElement)
+                {
+                    // 숫자로 변환 (int, double, float 등 가능)
+                    if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.Number)
+                    {
+                        if (jsonElement.TryGetInt64(out long longValue))
+                        {
+                            value = longValue;
+                        }
+                        else if (jsonElement.TryGetDouble(out double doubleValue))
+                        {
+                            value = doubleValue;
+                        }
+                    }
+                }
+                
                 await opcUaAdapter.WriteStateAsync(
                     CancellationToken.None,
                     "STM",
                     "Stm_yolo",
                     tag,
-                    request.Value);
+                    value);
 
                 await controlService.ControlLogProcess(request, alias);
                 
@@ -60,29 +78,50 @@ public static class ControlEndpoints
 
         group.MapPost("process", async (
             [FromBody] ControlRequest request,
-            [FromServices] OpcUaAdapter opcUaAdapter,
+            [FromServices] IOpcUaAdapter opcUaAdapter,
             [FromServices] IControlService controlService,
             [FromServices] ILogger<Program> logger
         ) =>
         {
             try
             {
+                
+                string value = string.Empty;
+                long state = 999;
+                if (request.Value is System.Text.Json.JsonElement jsonElement)
+                {
+                    // 숫자로 변환 (int, double, float 등 가능)
+                    if (jsonElement.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        switch (jsonElement.GetString())
+                        {
+                            case "RUN": 
+                                value = "2";
+                                state = 0;
+                                break;
+                            case "STOP": 
+                                value = "3";
+                                state = 1;
+                                break;
+                            case "EMERGENCY STOP": 
+                                value = "x";
+                                state = 2;
+                                break;
+                            default : 
+                                value = "999";
+                                state = 999;
+                                break;
+                        }
+                    }
+                }
+                
                 // 제어 명령은 두군데 다 보내야 함(stm, agv)
                 await opcUaAdapter.WriteStateAsync(
                     CancellationToken.None,
                     "ModbusTCP",
                     "ESP32_01",
                     "Control",
-                    request.Value);
-
-                long state = request.Value switch
-                {
-                    "RUN" => 0,
-                    "STOP" => 1,
-                    "EMERGENCY STOP" => 2,
-                    "CALL ADMIN" => 999,
-                    _ => throw new ArgumentException()
-                };
+                    value);
 
                 await opcUaAdapter.WriteStateAsync(
                     CancellationToken.None,

@@ -2,12 +2,12 @@
 
 public class ErrorLog
 {
-    public long error_id { get; set; }
-    public string error_code { get; set; } = string.Empty;
-    public string error_source { get; set; } = string.Empty;
-    public string error_msg { get; set; } = string.Empty;
-    public string? stack_trace { get; set; }
-    public int user_id { get; set; }
-    public int device_id { get; set; }
-    public DateTimeOffset created_at { get; set; }
+    public long ErrorId { get; set; }
+    public string ErrorCode { get; set; } = string.Empty;
+    public string ErrorSource { get; set; } = string.Empty;
+    public string ErrorMsg { get; set; } = string.Empty;
+    public string? StackTrace { get; set; }
+    public int UserId { get; set; }
+    public int DeviceId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 }

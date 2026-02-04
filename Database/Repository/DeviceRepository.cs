@@ -1,4 +1,5 @@
-﻿using Npgsql;
+﻿using Dapper;
+using Npgsql;
 using R.O.S.C.H.Database.Models;
 using R.O.S.C.H.Database.Repository.Interface;
 
@@ -14,38 +15,47 @@ public class DeviceRepository: IDeviceRepository
                             ?? throw new ArgumentNullException("ConnectionString");
     }
 
-    public Task<Device> GetDevice(NpgsqlConnection conn, string alias)
+    public async Task<Device?> GetDevice(NpgsqlConnection conn, string alias)
     {
-        throw new NotImplementedException();
+        string sql = """
+                     SELECT device_id AS DeviceId,
+                            device_code AS DeviceCode,
+                            device_type AS DeviceType,
+                            device_alias AS DeviceAlias,
+                            created_at AS CreatedAt
+                     FROM   "device"
+                     WHERE  device_alias = @Alias
+                     """;
+        return await conn.QueryFirstOrDefaultAsync<Device>(sql, new { Alias = alias });
     }
 
     public Task<IEnumerable<Device>> GetDevicesByDeviceCode(NpgsqlConnection conn, string deviceType, string deviceCode)
     {
-        throw new NotImplementedException();
-    }
-
-    public Task<IEnumerable<Device>> GetDevices(NpgsqlConnection conn)
-    {
-        throw new NotImplementedException();
+        string sql = """
+                     SELECT device_id AS DeviceId,
+                            device_code AS DeviceCode,
+                            device_type AS DeviceType,
+                            device_alias AS DeviceAlias,
+                            created_at AS CreatedAt
+                     FROM   "device"
+                     WHERE  device_type = @DeviceType
+                     AND    device_code = @DeviceCode
+                     """;
+        return conn.QueryAsync<Device>(sql, new { DeviceType = deviceType, DeviceCode = deviceCode });
     }
 
     public Task<IEnumerable<Device>> GetDevicesByDeviceType(NpgsqlConnection conn, string deviceType)
     {
-        throw new NotImplementedException();
+        string sql = """
+                     SELECT device_id AS DeviceId,
+                            device_code AS DeviceCode,
+                            device_type AS DeviceType,
+                            device_alias AS DeviceAlias,
+                            created_at AS CreatedAt
+                     FROM   "device"
+                     WHERE  device_type = @DeviceType
+                     """;
+        return conn.QueryAsync<Device>(sql, new { DeviceType = deviceType });
     }
 
-    public Task<int> CreateDevice(NpgsqlConnection conn, NpgsqlTransaction tx, Device device)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<int> UpdateDevice(NpgsqlConnection conn, NpgsqlTransaction tx, Device device)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<int> DeleteDevice(NpgsqlConnection conn, NpgsqlTransaction tx, int deviceId)
-    {
-        throw new NotImplementedException();
-    }
 }

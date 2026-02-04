@@ -280,19 +280,19 @@ public class OpcUaAdapter : IOpcUaAdapter
         
         // esp 세팅 
         // TODO : esp 연결 되면 확인할 것
-        // foreach (var r in espJson)
-        // {
-        //     var channel = r["channel"].ToString();
-        //     var device =  r["device"].ToString();
-        //     var tag = r["tag"].ToString();
-        //     
-        //     readValue.Add($"{channel.ToLower()}_{device.ToLower()}_{tag.ToLower()}");
-        //     readValueIdCollection.Add(new ReadValueId
-        //     {
-        //         NodeId = BuildKepwareNodeId(channel.Trim(),device.Trim(),tag.Trim()),
-        //         AttributeId = Attributes.Value
-        //     });
-        // }
+        foreach (var r in espJson)
+        {
+            var channel = r["channel"].ToString();
+            var device =  r["device"].ToString();
+            var tag = r["tag"].ToString();
+            
+            readValue.Add($"{channel.ToLower()}_{device.ToLower()}_{tag.ToLower()}");
+            readValueIdCollection.Add(new ReadValueId
+            {
+                NodeId = BuildKepwareNodeId(channel.Trim(),device.Trim(),tag.Trim()),
+                AttributeId = Attributes.Value
+            });
+        }
         
         // stm 세팅
         foreach (var r in stmJson)
@@ -333,6 +333,7 @@ public class OpcUaAdapter : IOpcUaAdapter
                 }
                 else
                 {
+                    resultDict.TryAdd(readValue[i],  0);
                     _logger.LogWarning(readValue[i] + " : " +  results[i].StatusCode);
                 }
             }
