@@ -47,24 +47,24 @@ R.O.S.C.H는 .NET 10.0 기반의 웹 애플리케이션으로, OPC UA 프로토�
 
 ```
 R.O.S.C.H/
-├── adapter/                # OPC UA 어댑터
-│   ├── Interface/
-│   ├── OpcUaAdapter.cs     # 실제 OPC UA 통신
-│   └── MockOpcUaAdapter.cs # 테스트용 Mock 어댑터
-├── API/                    # REST API
-│   ├── Endpoints/          # API 엔드포인트
-│   ├── Service/            # 비즈니스 로직
-│   └── DTO/                # 데이터 전송 객체
-├── Database/
-│   ├── Models/             # 데이터베이스 모델
-│   └── Repository/         # 데이터 접근 계층
-├── WS/                     # WebSocket 관리
-│   ├── Opc/                # OPC 데이터 WebSocket
-│   └── RTC/                # WebRTC 시그널링
-├── Worker/                 # 백그라운드 작업
-│   └── StatePollingWorker.cs
-├── wwwroot/                # 정적 웹 리소스
-└── Program.cs              # 애플리케이션 진입점
+adapter/                # OPC UA 어댑터
+ -Interface/
+ -OpcUaAdapter.cs     # 실제 OPC UA 통신
+ -MockOpcUaAdapter.cs # 테스트용 Mock 어댑터
+API/                    # REST API
+ -Endpoints/          # API 엔드포인트
+ -Service/            # 비즈니스 로직
+ -DTO/                # 데이터 전송 객체
+Database/
+ -Models/             # 데이터베이스 모델
+ -Repository/         # 데이터 접근 계층
+WS/                     # WebSocket 관리
+ -Opc/                # OPC 데이터 WebSocket
+ -RTC/                # WebRTC 시그널링
+Worker/                 # 백그라운드 작업
+ -StatePollingWorker.cs
+wwwroot/                # 정적 웹 리소스
+Program.cs              # 애플리케이션 진입점
 ```
 
 ## 시작하기
@@ -160,13 +160,6 @@ OPC UA 서버 없이 테스트하려면 `appsettings.Development.json`에서 `Us
 - Conveyor (LOAD, MAIN, SORT) 속도 제어
 - Robot 작업 상태 모니터링
 - Lift 층 이동 및 상태 확인
-
-## 기본 사용자 계정
-
-개발 환경에서 자동으로 생성되는 테스트 계정:
-
-- **관리자**: username: `admin`, password: `admin`
-- **일반 사용자**: username: `user`, password: `user`
 
 ## 개발
 
