@@ -1,6 +1,9 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using Npgsql;
+using R.O.S.C.H.Database.Models;
+using R.O.S.C.H.Database.Repository.Interface;
 using R.O.S.C.H.WS.Common;
 
 namespace R.O.S.C.H.WS.RTC;
@@ -11,6 +14,8 @@ public class RTCSocketMiddleware
     private readonly RTCConnectionManager _connectionManager;
     private readonly ILogger<RTCSocketMiddleware> _logger;
     private readonly Dictionary<string, IMessageHandler> _handlers;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IConfiguration _config;
     
     
     
@@ -18,12 +23,16 @@ public class RTCSocketMiddleware
         RequestDelegate next,
         RTCConnectionManager connectionManager,
         ILogger<RTCSocketMiddleware> logger,
-        IEnumerable<IMessageHandler> handlers)
+        IEnumerable<IMessageHandler> handlers,
+        IServiceScopeFactory serviceScopeFactory,
+        IConfiguration config)
     {
         _next = next;
         _connectionManager = connectionManager;
         _logger = logger;
         _handlers = handlers.ToDictionary(h => h.MessageType,  h => h);
+        _serviceScopeFactory = serviceScopeFactory;
+        _config = config;
     }
     
     public async Task InvokeAsync(HttpContext context)
@@ -75,6 +84,16 @@ public class RTCSocketMiddleware
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"[RTCSocketMiddleware] 브로드캐스터 해제 실패: {roomId}");
+                    
+                    // 에러 로그 DB에 저장 
+                    try
+                    {
+                        await SaveErrorLogToDbAsync("RTCSocketMiddleware.RemoveBroadcaster", ex.Message, ex.StackTrace);
+                    }
+                    catch (Exception logEx)
+                    {
+                        _logger.LogWarning(logEx, "[RTCSocketMiddleware] 에러 로그 저장 실패 (무시됨)");
+                    }
                 }
             }
 
@@ -154,6 +173,17 @@ public class RTCSocketMiddleware
                                 catch (Exception ex)
                                 {
                                     _logger.LogError("[RTCSocketMiddleware] 브로드 캐스터 등록 중 오류 발생 : "  + ex.Message);
+                                    
+                                    // 에러 로그 DB에 저장 
+                                    try
+                                    {
+                                        await SaveErrorLogToDbAsync("RTCSocketMiddleware.AddBroadcaster", ex.Message, ex.StackTrace);
+                                    }
+                                    catch (Exception logEx)
+                                    {
+                                        _logger.LogWarning(logEx, "[RTCSocketMiddleware] 에러 로그 저장 실패 (무시됨)");
+                                    }
+                                    
                                     await SendErrorAsync(socket, $"등록 처리 중 오류 발생하였습니다.");
                                 }
                             }
@@ -197,6 +227,17 @@ public class RTCSocketMiddleware
                     catch (JsonException ex)
                     {
                         _logger.LogError($"[WebSocketMiddleware] JSON 파싱 오류: {ex.Message}");
+                        
+                        // 에러 로그 DB에 저장 
+                        try
+                        {
+                            await SaveErrorLogToDbAsync("RTCSocketMiddleware.JsonParsing", ex.Message, ex.StackTrace);
+                        }
+                        catch (Exception logEx)
+                        {
+                            _logger.LogWarning(logEx, "[RTCSocketMiddleware] 에러 로그 저장 실패 (무시됨)");
+                        }
+                        
                         await SendErrorAsync(socket, "메시지 파싱 오류");
                     }
                 }
@@ -205,10 +246,30 @@ public class RTCSocketMiddleware
         catch (WebSocketException ex)
         {
             _logger.LogError($"[WebSocketMiddleware] WebSocket 오류: {ex.Message}");
+            
+            // 에러 로그 DB에 저장 
+            try
+            {
+                await SaveErrorLogToDbAsync("RTCSocketMiddleware.WebSocketException", ex.Message, ex.StackTrace);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "[RTCSocketMiddleware] 에러 로그 저장 실패 (무시됨)");
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError($"[WebSocketMiddleware] 예상치 못한 오류: {ex.Message}");
+            
+            // 에러 로그 DB에 저장 
+            try
+            {
+                await SaveErrorLogToDbAsync("RTCSocketMiddleware.UnexpectedException", ex.Message, ex.StackTrace);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "[RTCSocketMiddleware] 에러 로그 저장 실패 (무시됨)");
+            }
         }
         finally
         {
@@ -244,5 +305,37 @@ public class RTCSocketMiddleware
         };
         
         await SendMessageAsync(socket, errorResponse);
+    }
+    
+    private async Task SaveErrorLogToDbAsync(string errorSource, string errorMsg, string? stackTrace, int? deviceId = null)
+    {
+        try
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var errorLogRepo = scope.ServiceProvider.GetRequiredService<IErrorLogRepository>();
+            var connectionString = _config.GetConnectionString("DefaultConnection");
+            
+            using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync();
+            
+            using var tx = await conn.BeginTransactionAsync();
+            
+            var errorLog = new ErrorLog
+            {
+                ErrorCode = "E004", // 시스템 오류
+                ErrorSource = errorSource,
+                ErrorMsg = errorMsg,
+                StackTrace = stackTrace,
+                DeviceId = deviceId ?? 0,
+                UserId = 0
+            };
+            
+            await errorLogRepo.CreateErrorLog(conn, tx, errorLog);
+            await tx.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[RTCSocketMiddleware] 에러 로그 DB 저장 실패");
+        }
     }
 }

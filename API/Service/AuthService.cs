@@ -1,6 +1,7 @@
 ﻿using Npgsql;
 using R.O.S.C.H.API.DTO;
 using R.O.S.C.H.API.Service.Interface;
+using R.O.S.C.H.Database.Models;
 using R.O.S.C.H.Database.Repository.Interface;
 
 namespace R.O.S.C.H.API.Service;
@@ -8,12 +9,14 @@ namespace R.O.S.C.H.API.Service;
 public class AuthService(
     IUserRepository userRepository,
         IConfiguration configuration,
-        ILogger<AuthService> logger
+        ILogger<AuthService> logger,
+        IErrorLogRepository errorLogRepository
     ) : IAuthService
 {
     private readonly IUserRepository _userRepository = userRepository;
     private readonly IConfiguration _configuration = configuration;
     private readonly ILogger<AuthService> _logger = logger;
+    private readonly IErrorLogRepository _errorLogRepository = errorLogRepository;
 
 
     public async Task<AuthResponse> AuthenticateAsync(AuthRequest request)
@@ -86,6 +89,10 @@ public class AuthService(
         catch (Exception e)
         {
             _logger.LogError("[AuthService] 로그인 처리 중 오류 발생 : " + e.Message);
+            
+            // 에러 로그 DB에 저장
+            await SaveErrorLogToDbAsync("AuthService.AuthenticateAsync", e.Message, e.StackTrace);
+            
             return new AuthResponse
             {
                 Success = false,
@@ -130,11 +137,44 @@ public class AuthService(
         catch (Exception e)
         {
             _logger.LogError("[AuthService] 로그아웃 처리 중 오류 발생 : " + e.Message);
+            
+            // 에러 로그 DB에 저장
+            await SaveErrorLogToDbAsync("AuthService.LogoutAsync", e.Message, e.StackTrace);
+            
             return new AuthResponse
             {
                 Success = false,
                 Message = "로그아웃 처리 중 오류가 발생했습니다."
             };
+        }
+    }
+    
+    private async Task SaveErrorLogToDbAsync(string errorSource, string errorMsg, string? stackTrace, int? deviceId = null, int? userId = null)
+    {
+        try
+        {
+            var connectionString = _configuration.GetConnectionString("DefaultConnection");
+            using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync();
+            
+            using var tx = await conn.BeginTransactionAsync();
+            
+            var errorLog = new ErrorLog
+            {
+                ErrorCode = "E004", // 시스템 오류
+                ErrorSource = errorSource,
+                ErrorMsg = errorMsg,
+                StackTrace = stackTrace,
+                DeviceId = deviceId ?? 0,
+                UserId = userId ?? 0
+            };
+            
+            await _errorLogRepository.CreateErrorLog(conn, tx, errorLog);
+            await tx.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AuthService] 에러 로그 DB 저장 실패");
         }
     }
 }

@@ -1,9 +1,12 @@
 ﻿using System.Collections.Concurrent;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Npgsql;
 using Opc.Ua;
 using Opc.Ua.Client;
 using R.O.S.C.H.adapter.Interface;
+using R.O.S.C.H.Database.Models;
+using R.O.S.C.H.Database.Repository.Interface;
 
 namespace R.O.S.C.H.adapter;
 
@@ -11,6 +14,7 @@ public class OpcUaAdapter : IOpcUaAdapter
 {
     private ILogger<OpcUaAdapter> _logger;
     private readonly IConfiguration _config;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     
     //연결용 변수
     private readonly string _endPointURL;
@@ -28,10 +32,11 @@ public class OpcUaAdapter : IOpcUaAdapter
     private string _channel;
     private JObject? deviceJson;
 
-    public OpcUaAdapter(ILogger<OpcUaAdapter> logger, IConfiguration config)
+    public OpcUaAdapter(ILogger<OpcUaAdapter> logger, IConfiguration config, IServiceScopeFactory serviceScopeFactory)
     {
         _logger = logger;
         _config = config;
+        _serviceScopeFactory = serviceScopeFactory;
         
         _endPointURL = config.GetValue<string>("OpcUa:EndpointUrl", "opc.tcp://192.168.0.19:49320");
         _sessionName = config.GetValue<string>("OpcUa:SessionName", "ROS_SERVER");
@@ -212,6 +217,15 @@ public class OpcUaAdapter : IOpcUaAdapter
         {
             _logger.LogError(ex, "Failed to connect to Kepware OPC UA Server at {Url}", _endPointURL);
 
+            try
+            {
+                await SaveErrorLogToDbAsync("OpcUaAdapter.ConnectAsync", ex.Message, ex.StackTrace);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "[OpcUaAdapter] 에러 로그 저장 실패 (무시됨)");
+            }
+
             StartReconnectTask(ct);
 
             throw;
@@ -343,6 +357,15 @@ public class OpcUaAdapter : IOpcUaAdapter
         catch (Exception ex)
         {
             _logger.LogError(ex.Message);
+            
+            try
+            {
+                await SaveErrorLogToDbAsync("OpcUaAdapter.ReadStateAsync", ex.Message, ex.StackTrace);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "[OpcUaAdapter] 에러 로그 저장 실패 (무시됨)");
+            }
         }
 
         return new  Dictionary<string, object>();
@@ -389,6 +412,15 @@ public class OpcUaAdapter : IOpcUaAdapter
         {
             _logger.LogError($"[OpcUaAdapter] OPC-UA에 데이터 전송 실패\n{ex.Message}");
             
+            try
+            {
+                await SaveErrorLogToDbAsync("OpcUaAdapter.WriteStateAsync", ex.Message, ex.StackTrace);
+            }
+            catch (Exception logEx)
+            {
+                _logger.LogWarning(logEx, "[OpcUaAdapter] 에러 로그 저장 실패 (무시됨)");
+            }
+            
             // 연결 끊어진 경우 재연결 시도
             if (_session == null || !_session.Connected)
             {
@@ -397,6 +429,38 @@ public class OpcUaAdapter : IOpcUaAdapter
             }
 
             //throw;
+        }
+    }
+
+    private async Task SaveErrorLogToDbAsync(string errorSource, string errorMsg, string? stackTrace, int? deviceId = null)
+    {
+        try
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var errorLogRepo = scope.ServiceProvider.GetRequiredService<IErrorLogRepository>();
+            var connectionString = _config.GetConnectionString("DefaultConnection");
+            
+            using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync();
+            
+            using var tx = await conn.BeginTransactionAsync();
+            
+            var errorLog = new ErrorLog
+            {
+                ErrorCode = "E001", // OPC UA 통신 오류
+                ErrorSource = errorSource,
+                ErrorMsg = errorMsg,
+                StackTrace = stackTrace,
+                DeviceId = deviceId ?? 0,
+                UserId = 0
+            };
+            
+            await errorLogRepo.CreateErrorLog(conn, tx, errorLog);
+            await tx.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[OpcUaAdapter] 에러 로그 DB 저장 실패");
         }
     }
 

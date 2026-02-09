@@ -3,6 +3,9 @@ using System.Net.WebSockets;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Npgsql;
+using R.O.S.C.H.Database.Models;
+using R.O.S.C.H.Database.Repository.Interface;
 using R.O.S.C.H.WS.Opc.DTO;
 
 namespace R.O.S.C.H.WS.Opc;
@@ -12,10 +15,14 @@ public class OpcWebSocketManager
     private static readonly ConcurrentDictionary<string, OpcClientDto> _clients = new();
     private static readonly ConcurrentDictionary<string, OpcClientDto> _unity = new();
     private readonly ILogger<OpcWebSocketManager> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IConfiguration _config;
     
-    public OpcWebSocketManager(ILogger<OpcWebSocketManager> logger)
+    public OpcWebSocketManager(ILogger<OpcWebSocketManager> logger, IServiceScopeFactory serviceScopeFactory, IConfiguration config)
     {
         _logger = logger;
+        _serviceScopeFactory = serviceScopeFactory;
+        _config = config;
     }
 
     public void RegisterClient(string clientId, OpcClientDto client, bool isUnity)
@@ -71,6 +78,16 @@ public class OpcWebSocketManager
             catch (Exception e)
             {
                 _logger.LogError($"[OPCSocketMiddleware] client {client.Key} 에게 데이터 전송 중 오류 : " + e.Message);
+                
+                // 에러 로그 DB에 저장 
+                try
+                {
+                    await SaveErrorLogToDbAsync("OpcWebSocketManager.SendDataAsync(Client)", e.Message, e.StackTrace);
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogWarning(logEx, "[OpcWebSocketManager] 에러 로그 저장 실패 (무시됨)");
+                }
             }
         }
         
@@ -93,7 +110,49 @@ public class OpcWebSocketManager
             } catch (Exception e)
             {
                 _logger.LogError($"[OPCSocketMiddleware] unity {client.Key} 에게 데이터 전송 중 오류 : " + e.Message);
+                
+                // 에러 로그 DB에 저장 
+                try
+                {
+                    await SaveErrorLogToDbAsync("OpcWebSocketManager.SendDataAsync(Unity)", e.Message, e.StackTrace);
+                }
+                catch (Exception logEx)
+                {
+                    _logger.LogWarning(logEx, "[OpcWebSocketManager] 에러 로그 저장 실패 (무시됨)");
+                }
             }
+        }
+    }
+    
+    private async Task SaveErrorLogToDbAsync(string errorSource, string errorMsg, string? stackTrace, int? deviceId = null)
+    {
+        try
+        {
+            using var scope = _serviceScopeFactory.CreateScope();
+            var errorLogRepo = scope.ServiceProvider.GetRequiredService<IErrorLogRepository>();
+            var connectionString = _config.GetConnectionString("DefaultConnection");
+            
+            using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync();
+            
+            using var tx = await conn.BeginTransactionAsync();
+            
+            var errorLog = new ErrorLog
+            {
+                ErrorCode = "E001", // OPC UA 통신 오류
+                ErrorSource = errorSource,
+                ErrorMsg = errorMsg,
+                StackTrace = stackTrace,
+                DeviceId = deviceId ?? 0,
+                UserId = 0
+            };
+            
+            await errorLogRepo.CreateErrorLog(conn, tx, errorLog);
+            await tx.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[OpcWebSocketManager] 에러 로그 DB 저장 실패");
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Npgsql;
 using R.O.S.C.H.adapter;
 using R.O.S.C.H.adapter.Interface;
 using R.O.S.C.H.API.DTO;
@@ -18,7 +19,9 @@ public static class ControlEndpoints
             [FromBody] ControlRequest request,
             [FromServices] IOpcUaAdapter opcUaAdapter,
             [FromServices] IControlService controlService,
-            [FromServices] ILogger<Program> logger
+            [FromServices] ILogger<Program> logger,
+            [FromServices] IErrorLogRepository errorLogRepo,
+            [FromServices] IConfiguration config
             ) =>
         {
             try
@@ -72,6 +75,16 @@ public static class ControlEndpoints
             catch (Exception e)
             {
                 logger.LogError("컨베이어 속도 변경 중 오류"+e.Message);
+                
+                try
+                {
+                    await SaveErrorLogToDb(errorLogRepo, config, "ControlEndpoints.Conveyor", e.Message, e.StackTrace, logger);
+                }
+                catch (Exception logEx)
+                {
+                    logger.LogWarning(logEx, "[ControlEndpoints] 에러 로그 저장 실패 (무시됨)");
+                }
+                
                 return Results.Problem(detail:e.Message, statusCode:500);
             }
         });
@@ -80,7 +93,9 @@ public static class ControlEndpoints
             [FromBody] ControlRequest request,
             [FromServices] IOpcUaAdapter opcUaAdapter,
             [FromServices] IControlService controlService,
-            [FromServices] ILogger<Program> logger
+            [FromServices] ILogger<Program> logger,
+            [FromServices] IErrorLogRepository errorLogRepo,
+            [FromServices] IConfiguration config
         ) =>
         {
             try
@@ -137,8 +152,55 @@ public static class ControlEndpoints
             catch (Exception e)
             {
                 logger.LogError("제어 명령 전송 중 오류" + e.Message);
+                
+                try
+                {
+                    await SaveErrorLogToDb(errorLogRepo, config, "ControlEndpoints.Process", e.Message, e.StackTrace, logger);
+                }
+                catch (Exception logEx)
+                {
+                    logger.LogWarning(logEx, "[ControlEndpoints] 에러 로그 저장 실패 (무시됨)");
+                }
+                
                 return Results.Problem(detail: e.Message, statusCode: 500);
             }
         });
+    }
+    
+    private static async Task SaveErrorLogToDb(
+        IErrorLogRepository errorLogRepo, 
+        IConfiguration config, 
+        string errorSource, 
+        string errorMsg, 
+        string? stackTrace, 
+        ILogger logger,
+        int? deviceId = null, 
+        int? userId = null)
+    {
+        try
+        {
+            var connectionString = config.GetConnectionString("DefaultConnection");
+            using var conn = new NpgsqlConnection(connectionString);
+            await conn.OpenAsync();
+            
+            using var tx = await conn.BeginTransactionAsync();
+            
+            var errorLog = new ErrorLog
+            {
+                ErrorCode = "E003", // 제어 오류
+                ErrorSource = errorSource,
+                ErrorMsg = errorMsg,
+                StackTrace = stackTrace,
+                DeviceId = deviceId ?? 0,
+                UserId = userId ?? 0
+            };
+            
+            await errorLogRepo.CreateErrorLog(conn, tx, errorLog);
+            await tx.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[ControlEndpoints] 에러 로그 DB 저장 실패");
+        }
     }
 }
