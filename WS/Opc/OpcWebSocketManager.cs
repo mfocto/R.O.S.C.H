@@ -155,4 +155,35 @@ public class OpcWebSocketManager
             _logger.LogError(ex, "[OpcWebSocketManager] 에러 로그 DB 저장 실패");
         }
     }
+
+    public async Task CloseAllConnectionAsync(CancellationToken ct = default)
+    {
+        var tasks = new List<Task>();
+    
+        foreach (var kv in _clients.ToArray())
+        {
+            if (kv.Value.Socket.State == WebSocketState.Open)
+                tasks.Add(CloseSocketAsync(kv.Value.Socket, ct));
+            _clients.TryRemove(kv.Key, out _);
+        }
+        foreach (var kv in _unity.ToArray())
+        {
+            if (kv.Value.Socket.State == WebSocketState.Open)
+                tasks.Add(CloseSocketAsync(kv.Value.Socket, ct));
+            _unity.TryRemove(kv.Key, out _);
+        }
+    
+        await Task.WhenAll(tasks);
+        _logger.LogInformation("[OpcWebSocketManager] 모든 OPC/Unity 연결 종료 완료");
+    }
+    
+    private static async Task CloseSocketAsync(WebSocket socket, CancellationToken ct)
+    {
+        try
+        {
+            await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Server is shutting down.", ct);
+        }
+        catch { /**/ }
+        finally { socket.Dispose(); }
+    }
 }

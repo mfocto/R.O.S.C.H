@@ -91,15 +91,12 @@ public class ControlService: IControlService
 
     public void Log(string type, string message)
     {
-        if  (_logger.IsEnabled(LogLevel.Debug))
+        switch (type)
         {
-            switch (type)
-            {
-                case "info" : _logger.LogInformation(message); break;
-                case "warn" : _logger.LogWarning(message); break;
-                case "error" : _logger.LogError(message); break;
-                case "debug" :  _logger.LogDebug(message); break;
-            }
+            case "info" : _logger.LogInformation(message); break;
+            case "warn" : _logger.LogWarning(message); break;
+            case "error" : _logger.LogError(message); break;
+            case "debug" :  _logger.LogDebug(message); break;
         }
     }
     

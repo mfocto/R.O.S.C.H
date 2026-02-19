@@ -1,5 +1,6 @@
 using System.Reflection;
 using Npgsql;
+using R.O.S.C.H;
 using R.O.S.C.H.adapter;
 using R.O.S.C.H.adapter.Interface;
 using R.O.S.C.H.API.Endpoints;
@@ -15,7 +16,7 @@ using R.O.S.C.H.WS.RTC.Handler;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseUrls("http://0.0.0.0:5178");
-
+builder.Host.ConfigureHostOptions(o => o.ShutdownTimeout = TimeSpan.FromMinutes(30)); // shutdown 대기시간
 
 builder.Services.AddControllers();
 
@@ -74,6 +75,7 @@ foreach (var service in services)
 }
 #endregion
 
+builder.Services.AddHostedService<ShutdownHostedService>(); // 종료시 처리용
 
 var app = builder.Build();
 
@@ -107,7 +109,6 @@ using (var scope = app.Services.CreateScope())
         };
         
         int result = await userRepo.CreateAsync(conn, tx, testAdmin);
-        Console.WriteLine("admin 생성 : " +  result);
         await tx.CommitAsync();
     }
     
@@ -128,7 +129,6 @@ using (var scope = app.Services.CreateScope())
         };
         
         int result = await userRepo.CreateAsync(conn, tx, testUser);
-        Console.WriteLine("user 생성 : " +  result);
         await tx.CommitAsync();
     }
 }

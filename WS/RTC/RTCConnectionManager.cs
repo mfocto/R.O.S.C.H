@@ -181,6 +181,45 @@ public class RTCConnectionManager(ILogger<RTCConnectionManager> logger)
                 CancellationToken.None);
         }
     }
+
+    /// <summary>
+    /// 프로그램 종료시 처리
+    /// </summary>
+    /// <param name="ct"></param>
+    public async Task CloseAllConnectionAsync(CancellationToken ct = default)
+    {
+        var tasks = new List<Task>();
     
+        foreach (var kv in _BroadCasters.ToArray())
+        {
+            if (kv.Value.State == WebSocketState.Open)
+            {
+                tasks.Add(CloseSocketAsync(kv.Value, ct));
+            }
+            _BroadCasters.TryRemove(kv.Key, out _);
+        }
+    
+        foreach (var kv in _Clients.ToArray())
+        {
+            if (kv.Value.Socket.State == WebSocketState.Open)
+            {
+                tasks.Add(CloseSocketAsync(kv.Value.Socket, ct));
+            }
+            _Clients.TryRemove(kv.Key, out _);
+        }
+    
+        await Task.WhenAll(tasks);
+        _logger.LogInformation("[RTCConnectionManager] 모든 RTC 연결 종료 완료");
+    }
+
+    private static async Task CloseSocketAsync(WebSocket socket, CancellationToken ct)
+    {
+        try
+        {
+            await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Server is shutting down.", ct);
+        }
+        catch { /* 이미 닫혀 있거나 오류 무시 */ }
+        finally { socket.Dispose(); }
+    }
 }
 
