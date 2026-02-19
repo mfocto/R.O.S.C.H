@@ -6,6 +6,13 @@
 
 R.O.S.C.H는 .NET 10.0 기반의 웹 애플리케이션으로, OPC UA 프로토콜을 통해 산업용 디바이스(AGV, Conveyor, Robot, Lift)를 실시간으로 모니터링하고 제어할 수 있는 시스템입니다.
 
+본 프로젝트는 **산업 설비(OPC UA)와 서버 간 실시간 데이터 수집·제어 환경**을
+가정하여 설계한 **산업용 서버 소프트웨어**입니다.
+핵심 목표는 다음과 같습니다.
+
+- 설비 통신 지연/불안정 상황에서도 안정적으로 상태를 동기화
+- 실제 하드웨어가 없는 환경에서도 개발·테스트가 가능한 구조
+
 ## 주요 기능
 
 - **OPC UA 통신**: ModbusTCP를 통한 ESP32, STM32 디바이스와의 실시간 데이터 통신
@@ -40,24 +47,24 @@ R.O.S.C.H는 .NET 10.0 기반의 웹 애플리케이션으로, OPC UA 프로토�
 
 ```
 R.O.S.C.H/
-├── adapter/                # OPC UA 어댑터
-│   ├── Interface/
-│   ├── OpcUaAdapter.cs     # 실제 OPC UA 통신
-│   └── MockOpcUaAdapter.cs # 테스트용 Mock 어댑터
-├── API/                    # REST API
-│   ├── Endpoints/          # API 엔드포인트
-│   ├── Service/            # 비즈니스 로직
-│   └── DTO/                # 데이터 전송 객체
-├── Database/
-│   ├── Models/             # 데이터베이스 모델
-│   └── Repository/         # 데이터 접근 계층
-├── WS/                     # WebSocket 관리
-│   ├── Opc/                # OPC 데이터 WebSocket
-│   └── RTC/                # WebRTC 시그널링
-├── Worker/                 # 백그라운드 작업
-│   └── StatePollingWorker.cs
-├── wwwroot/                # 정적 웹 리소스
-└── Program.cs              # 애플리케이션 진입점
+adapter/                # OPC UA 어댑터
+ -Interface/
+ -OpcUaAdapter.cs     # 실제 OPC UA 통신
+ -MockOpcUaAdapter.cs # 테스트용 Mock 어댑터
+API/                    # REST API
+ -Endpoints/          # API 엔드포인트
+ -Service/            # 비즈니스 로직
+ -DTO/                # 데이터 전송 객체
+Database/
+ -Models/             # 데이터베이스 모델
+ -Repository/         # 데이터 접근 계층
+WS/                     # WebSocket 관리
+ -Opc/                # OPC 데이터 WebSocket
+ -RTC/                # WebRTC 시그널링
+Worker/                 # 백그라운드 작업
+ -StatePollingWorker.cs
+wwwroot/                # 정적 웹 리소스
+Program.cs              # 애플리케이션 진입점
 ```
 
 ## 시작하기
@@ -153,13 +160,6 @@ OPC UA 서버 없이 테스트하려면 `appsettings.Development.json`에서 `Us
 - Conveyor (LOAD, MAIN, SORT) 속도 제어
 - Robot 작업 상태 모니터링
 - Lift 층 이동 및 상태 확인
-
-## 기본 사용자 계정
-
-개발 환경에서 자동으로 생성되는 테스트 계정:
-
-- **관리자**: username: `admin`, password: `admin`
-- **일반 사용자**: username: `user`, password: `user`
 
 ## 개발
 
